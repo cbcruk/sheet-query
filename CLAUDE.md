@@ -159,13 +159,13 @@ SELECT COUNT(A)
 
 ### 인증
 
-- [ ] Service Account vs OAuth (불특정 다수 쓰기 시나리오라면 Service Account)
-- [ ] OAuth 사용 시 token refresh 전략
+- [x] **Service Account 채택** — 키는 서버(Worker)에만 보관, 브라우저 노출 없음
+- [ ] (OAuth는 채택 안 함) token refresh 전략 불필요
 
 ### 서버 환경
 
-- [ ] Next.js API Route / Express / 기타?
-- [ ] 배포 환경 (Vercel / 자체 서버 / Cloudflare Workers 등)
+- [x] **Cloudflare Workers 채택** — Service Account JWT 서명은 Web Crypto(`crypto.subtle`)로 처리
+- [ ] 배포 세부 (라우팅, 환경변수로 SA 키 주입)
 
 ## 코딩 컨벤션
 
