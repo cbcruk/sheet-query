@@ -154,8 +154,10 @@ SELECT COUNT(A)
 
 ### 시트
 
-- [ ] 어떤 시트로 PoC 시작? (테스트용 신규 시트 vs 실제 시트)
-- [ ] 컬럼 구조와 `id` 컬럼 위치
+- [x] **PoC 테스트 시트 확정** — id `1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y` (공개 읽기)
+- [x] **컬럼 구조 확정** — `A:id`(number, unique), `B:name`, `C:age`, `D:city`, `E:active`(bool), `F:joined`(date). `id` 컬럼은 A열.
+
+> Layer 0 read는 이 시트로 end-to-end 검증 완료 (타입 변환, WHERE 한글/불리언/숫자, AND, ORDER BY).
 
 ### 인증
 
