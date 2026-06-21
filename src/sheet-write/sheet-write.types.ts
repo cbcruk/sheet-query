@@ -42,6 +42,12 @@ export interface SheetTable {
    * `updateRowById` validates the merged row before writing.
    */
   schema?: StandardSchemaV1
+  /**
+   * When `true`, every mutation first reads the sheet's header row and asserts
+   * it still matches {@link columns}, guarding position-based writes against
+   * header drift (at the cost of one extra read per mutation).
+   */
+  verifyHeaders?: boolean
 }
 
 /** A value accepted when writing a cell. */

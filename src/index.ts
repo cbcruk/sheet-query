@@ -36,6 +36,9 @@ export { serializeWriteValue, recordToRow, rowToRecord } from './sheet-write/she
 
 export { validateValue, validateRows } from './schema/validate.ts'
 
+export { compareHeaders, assertHeaders, tableHeaderLabels } from './headers/headers.ts'
+export { fetchHeaderRow, verifyTableHeaders } from './sheet-write/table-headers.ts'
+
 export type { Condition, ColumnValue } from './sheet-query/conditions.ts'
 export type {
   ExecuteOptions,
@@ -70,3 +73,4 @@ export type {
   InferInput,
   InferOutput,
 } from './schema/standard-schema.types.ts'
+export type { HeaderCheck, HeaderMismatch } from './headers/headers.types.ts'

@@ -53,4 +53,9 @@ export interface ExecuteOptions {
    * `execute` returns the schema's parsed output type instead of {@link SheetRow}.
    */
   schema?: StandardSchemaV1
+  /**
+   * Expected header names. When provided, `execute` asserts the sheet's actual
+   * column labels match (in order) and throws on drift.
+   */
+  verifyHeaders?: string[]
 }

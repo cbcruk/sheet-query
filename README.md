@@ -81,6 +81,25 @@ const table = { sheet: 'people', columns: ['id', 'name', 'age'], schema: personS
 await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
 ```
 
+## 헤더 변경 감지
+
+시트 헤더가 바뀌면 매핑이 조용히 깨집니다 (특히 쓰기는 컬럼 position 기반). 기대 헤더와 실제 헤더를 비교해 drift를 잡습니다.
+
+```ts
+// 읽기: GViz 응답의 컬럼 라벨 검증
+await sheetQuery(spreadsheetId, { sheet: 'people' }).execute({
+  verifyHeaders: ['id', 'name', 'age'],
+})
+
+// 쓰기: table.verifyHeaders로 mutation 전 헤더 행 검증 (drift 시 throw, 쓰기 전 중단)
+const table = { sheet: 'people', columns: ['id', 'name', 'age'], verifyHeaders: true }
+await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
+
+// 수동/주기적 검증
+import { verifyTableHeaders, compareHeaders } from 'sheet-query'
+await verifyTableHeaders(ctx, table)
+```
+
 ## 핵심 동작
 
 - **JSONP 언랩**: GViz의 `setResponse(...)` wrapper를 제거 후 JSON 파싱.

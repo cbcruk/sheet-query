@@ -10,7 +10,14 @@ import {
   updateValues,
 } from './sheets-client.ts'
 import { recordToRow, resolveIdColumn, rowToRecord } from './sheet-write.utils.ts'
+import { verifyTableHeaders } from './table-headers.ts'
 import type { CellInput, SheetsApiContext, SheetTable, WriteRecord } from './sheet-write.types.ts'
+
+async function guardHeaders(ctx: SheetsApiContext, table: SheetTable): Promise<void> {
+  if (table.verifyHeaders) {
+    await verifyTableHeaders(ctx, table)
+  }
+}
 
 /**
  * Appends a new row built from `record`, ordered by the table's columns.
@@ -27,6 +34,8 @@ export async function appendRow(
   if (record[name] === null || record[name] === undefined) {
     throw new SheetQueryError(`Cannot append a row without an id ("${name}").`)
   }
+
+  await guardHeaders(ctx, table)
 
   const validated = table.schema
     ? ((await validateValue(table.schema, record)) as WriteRecord)
@@ -49,6 +58,8 @@ export async function updateRowById(
   id: CellInput,
   patch: WriteRecord,
 ): Promise<void> {
+  await guardHeaders(ctx, table)
+
   const rowNumber = await findRowNumberById(ctx, table, id)
 
   if (rowNumber === null) {
@@ -76,6 +87,8 @@ export async function deleteRowById(
   table: SheetTable,
   id: CellInput,
 ): Promise<void> {
+  await guardHeaders(ctx, table)
+
   const rowNumber = await findRowNumberById(ctx, table, id)
 
   if (rowNumber === null) {

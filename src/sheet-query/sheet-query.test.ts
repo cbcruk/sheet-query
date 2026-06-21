@@ -166,3 +166,20 @@ test('execute({ schema }) throws when a row fails validation', async () => {
     sheetQuery('sid').execute({ fetch: mockFetchFor(payload), schema: personSchema }),
   ).rejects.toThrow(SheetQueryError)
 })
+
+test('execute({ verifyHeaders }) passes when labels match', async () => {
+  const rows = await sheetQuery('sid').execute({
+    fetch: mockFetchFor(PEOPLE_PAYLOAD),
+    verifyHeaders: ['id', 'name'],
+  })
+  expect(rows).toHaveLength(2)
+})
+
+test('execute({ verifyHeaders }) throws on header drift', async () => {
+  await expect(
+    sheetQuery('sid').execute({
+      fetch: mockFetchFor(PEOPLE_PAYLOAD),
+      verifyHeaders: ['id', 'fullname'],
+    }),
+  ).rejects.toThrow(/Header drift detected/)
+})

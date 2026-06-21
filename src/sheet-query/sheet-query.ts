@@ -1,3 +1,4 @@
+import { assertHeaders, tableHeaderLabels } from '../headers/headers.ts'
 import type { InferOutput, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
 import { validateRows } from '../schema/validate.ts'
 import type { Condition } from './conditions.ts'
@@ -139,6 +140,10 @@ export class SheetQuery {
     const body = await response.text()
     const parsed = parseGVizResponse(body)
     assertGVizOk(parsed)
+
+    if (options.verifyHeaders) {
+      assertHeaders(options.verifyHeaders, tableHeaderLabels(parsed.table))
+    }
 
     const rows = tableToObjects(parsed.table)
     return options.schema ? validateRows(options.schema, rows) : rows
