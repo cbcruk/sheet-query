@@ -1,4 +1,5 @@
 import { SheetQueryError } from '../sheet-query/sheet-query.error.ts'
+import { validateValue } from '../schema/validate.ts'
 import { rowRange, tableRange } from './a1.ts'
 import { findRowNumberById } from './row-identity.ts'
 import {
@@ -27,8 +28,12 @@ export async function appendRow(
     throw new SheetQueryError(`Cannot append a row without an id ("${name}").`)
   }
 
+  const validated = table.schema
+    ? ((await validateValue(table.schema, record)) as WriteRecord)
+    : record
+
   await appendValues(ctx, tableRange(table.sheet, table.columns.length), [
-    recordToRow(table.columns, record),
+    recordToRow(table.columns, validated),
   ])
 }
 
@@ -54,7 +59,11 @@ export async function updateRowById(
   const [current = []] = await getValues(ctx, range)
   const merged = { ...rowToRecord(table.columns, current), ...patch }
 
-  await updateValues(ctx, range, [recordToRow(table.columns, merged)])
+  const validated = table.schema
+    ? ((await validateValue(table.schema, merged)) as WriteRecord)
+    : merged
+
+  await updateValues(ctx, range, [recordToRow(table.columns, validated)])
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { Condition } from './conditions.ts'
+import type { StandardSchemaV1 } from '../schema/standard-schema.types.ts'
 
 /** Sort direction for an ORDER BY clause. */
 export type SortDirection = 'asc' | 'desc'
@@ -47,4 +48,9 @@ export interface ExecuteOptions {
   accessToken?: string
   /** Abort signal forwarded to the underlying request. */
   signal?: AbortSignal
+  /**
+   * Standard Schema to validate each returned row against. When provided,
+   * `execute` returns the schema's parsed output type instead of {@link SheetRow}.
+   */
+  schema?: StandardSchemaV1
 }

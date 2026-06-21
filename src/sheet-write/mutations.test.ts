@@ -4,6 +4,21 @@ import { appendRow, deleteRowById, updateRowById } from './mutations.ts'
 import { findRowNumberById } from './row-identity.ts'
 import { SheetQueryError } from '../sheet-query/sheet-query.error.ts'
 import type { SheetsApiContext, SheetTable } from './sheet-write.types.ts'
+import type { StandardSchemaResult, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
+
+const personSchema: StandardSchemaV1 = {
+  '~standard': {
+    version: 1,
+    vendor: 'test',
+    validate: (value): StandardSchemaResult<unknown> => {
+      const record = value as Record<string, unknown>
+      if (typeof record.age !== 'number') {
+        return { issues: [{ message: 'age must be a number', path: ['age'] }] }
+      }
+      return { value }
+    },
+  },
+}
 
 const TABLE: SheetTable = {
   sheet: 'people',
@@ -91,6 +106,19 @@ test('appendRow posts a serialized row to the append endpoint', async () => {
 test('appendRow throws without an id', async () => {
   const { ctx } = createMock()
   await expect(appendRow(ctx, TABLE, { name: 'NoId' })).rejects.toThrow(SheetQueryError)
+})
+
+test('appendRow validates the record against the table schema', async () => {
+  const { ctx, calls } = createMock()
+  const table: SheetTable = { ...TABLE, schema: personSchema }
+
+  await expect(
+    appendRow(ctx, table, { id: 9, name: 'X', age: 'twenty', city: '서울' }),
+  ).rejects.toThrow(/age must be a number/)
+  expect(calls.some((c) => c.url.includes(':append'))).toBe(false)
+
+  await appendRow(ctx, table, { id: 9, name: 'X', age: 20, city: '서울' })
+  expect(calls.some((c) => c.url.includes(':append'))).toBe(true)
 })
 
 test('updateRowById merges the patch over existing values', async () => {

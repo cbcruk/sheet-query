@@ -34,6 +34,8 @@ export {
 } from './sheet-write/a1.ts'
 export { serializeWriteValue, recordToRow, rowToRecord } from './sheet-write/sheet-write.utils.ts'
 
+export { validateValue, validateRows } from './schema/validate.ts'
+
 export type { Condition, ColumnValue } from './sheet-query/conditions.ts'
 export type {
   ExecuteOptions,
@@ -60,3 +62,11 @@ export type {
   WriteRecord,
   WriteValue,
 } from './sheet-write/sheet-write.types.ts'
+export type {
+  StandardSchemaV1,
+  StandardSchemaProps,
+  StandardSchemaResult,
+  StandardSchemaIssue,
+  InferInput,
+  InferOutput,
+} from './schema/standard-schema.types.ts'

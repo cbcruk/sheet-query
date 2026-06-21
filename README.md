@@ -47,6 +47,40 @@ q.toUrl() // 전체 GViz 요청 URL
 - **public 시트**: 옵션 없이 `execute()`.
 - **OAuth 보호 시트**: `execute({ accessToken })`로 Bearer 토큰 전달.
 
+## 쓰기 (Layer 1/2: Sheets API)
+
+쓰기는 access token만 받는 transport·auth 독립적인 코어입니다. `id` 컬럼으로 row를 찾아 작업합니다 (row index는 mutable하므로 매번 조회).
+
+```ts
+import { appendRow, updateRowById, deleteRowById } from 'sheet-query'
+
+const ctx = { spreadsheetId, accessToken } // SA/OAuth 어디서 왔든 무관
+const table = { sheet: 'people', columns: ['id', 'name', 'age', 'city', 'active', 'joined'] }
+
+await appendRow(ctx, table, { id: 9, name: 'Xavier', age: 20 })
+await updateRowById(ctx, table, 9, { age: 21 }) // 기존 행과 merge (last-write-wins)
+await deleteRowById(ctx, table, 9)
+```
+
+## 스키마 검증 (Standard Schema)
+
+[Standard Schema](https://standardschema.dev) 호환 라이브러리(Zod 3.24+, Valibot, ArkType...)를 그대로 사용합니다. 코어는 인터페이스만 인라인해 **런타임 의존성이 없습니다**.
+
+```ts
+import { z } from 'zod'
+
+const personSchema = z.object({ id: z.number(), name: z.string(), age: z.number() })
+
+// 읽기: 검증된 타입으로 반환 (실패 시 throw)
+const people = await sheetQuery(spreadsheetId, { sheet: 'people' }).execute({
+  schema: personSchema,
+})
+
+// 쓰기: table.schema 지정 시 append/update 전에 검증
+const table = { sheet: 'people', columns: ['id', 'name', 'age'], schema: personSchema }
+await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
+```
+
 ## 핵심 동작
 
 - **JSONP 언랩**: GViz의 `setResponse(...)` wrapper를 제거 후 JSON 파싱.

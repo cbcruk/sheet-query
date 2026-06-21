@@ -3,6 +3,44 @@ import { expect, test } from 'vite-plus/test'
 import { and, eq, gt } from './conditions.ts'
 import { sheetQuery } from './sheet-query.ts'
 import { SheetQueryError } from './sheet-query.error.ts'
+import type { StandardSchemaResult, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
+
+function mockFetchFor(payload: unknown): typeof fetch {
+  const body = `/*O_o*/\ngoogle.visualization.Query.setResponse(${JSON.stringify(payload)});`
+  return (async () => new Response(body, { status: 200 })) as unknown as typeof fetch
+}
+
+interface Person {
+  id: number
+  name: string
+}
+
+const personSchema: StandardSchemaV1<unknown, Person> = {
+  '~standard': {
+    version: 1,
+    vendor: 'test',
+    validate: (value): StandardSchemaResult<Person> => {
+      const record = value as Record<string, unknown>
+      if (typeof record.id !== 'number' || typeof record.name !== 'string') {
+        return { issues: [{ message: 'invalid person', path: ['name'] }] }
+      }
+      return { value: { id: record.id, name: record.name } }
+    },
+  },
+}
+
+const PEOPLE_PAYLOAD = {
+  version: '0.6',
+  reqId: '0',
+  status: 'ok',
+  table: {
+    cols: [
+      { id: 'A', label: 'id', type: 'number' },
+      { id: 'B', label: 'name', type: 'string' },
+    ],
+    rows: [{ c: [{ v: 1 }, { v: 'Ann' }] }, { c: [{ v: 2 }, { v: 'Bob' }] }],
+  },
+}
 
 test('builds SELECT * by default', () => {
   expect(sheetQuery('sid').toQuery()).toBe('SELECT *')
@@ -101,4 +139,30 @@ test('execute() throws on a GViz error status', async () => {
   await expect(sheetQuery('sid').execute({ fetch: mockFetch })).rejects.toThrow(
     /GViz query failed: Bad query/,
   )
+})
+
+test('execute({ schema }) returns rows validated by the schema', async () => {
+  const rows = await sheetQuery('sid').execute({
+    fetch: mockFetchFor(PEOPLE_PAYLOAD),
+    schema: personSchema,
+  })
+
+  expect(rows).toEqual([
+    { id: 1, name: 'Ann' },
+    { id: 2, name: 'Bob' },
+  ])
+})
+
+test('execute({ schema }) throws when a row fails validation', async () => {
+  const payload = {
+    ...PEOPLE_PAYLOAD,
+    table: {
+      ...PEOPLE_PAYLOAD.table,
+      rows: [{ c: [{ v: 'not-a-number' }, { v: 'Ann' }] }],
+    },
+  }
+
+  await expect(
+    sheetQuery('sid').execute({ fetch: mockFetchFor(payload), schema: personSchema }),
+  ).rejects.toThrow(SheetQueryError)
 })

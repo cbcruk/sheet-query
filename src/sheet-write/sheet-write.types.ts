@@ -1,3 +1,5 @@
+import type { StandardSchemaV1 } from '../schema/standard-schema.types.ts'
+
 /**
  * Context for authenticated Sheets API v4 requests.
  *
@@ -35,6 +37,11 @@ export interface SheetTable {
    * metadata call. Provide it to skip that round-trip.
    */
   sheetId?: number
+  /**
+   * Optional Standard Schema. When set, `appendRow` validates the record and
+   * `updateRowById` validates the merged row before writing.
+   */
+  schema?: StandardSchemaV1
 }
 
 /** A value accepted when writing a cell. */

@@ -1,3 +1,5 @@
+import type { InferOutput, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
+import { validateRows } from '../schema/validate.ts'
 import type { Condition } from './conditions.ts'
 import { assertGVizOk, parseGVizResponse, tableToObjects } from './gviz.ts'
 import type { SheetRow } from './gviz.types.ts'
@@ -92,12 +94,21 @@ export class SheetQuery {
   }
 
   /**
+   * Executes the query and returns the rows validated by `options.schema`.
+   *
+   * @throws {SheetQueryError} on network failure, a GViz error, or validation.
+   */
+  async execute<Schema extends StandardSchemaV1>(
+    options: ExecuteOptions & { schema: Schema },
+  ): Promise<InferOutput<Schema>[]>
+  /**
    * Executes the query and returns rows as plain objects keyed by column label.
    *
    * @typeParam T - Expected row shape; defaults to {@link SheetRow}.
    * @throws {SheetQueryError} on network failure or a GViz error response.
    */
-  async execute<T = SheetRow>(options: ExecuteOptions = {}): Promise<T[]> {
+  async execute<T = SheetRow>(options?: ExecuteOptions): Promise<T[]>
+  async execute(options: ExecuteOptions = {}): Promise<unknown[]> {
     const fetchImpl = options.fetch ?? globalThis.fetch
 
     if (typeof fetchImpl !== 'function') {
@@ -129,7 +140,8 @@ export class SheetQuery {
     const parsed = parseGVizResponse(body)
     assertGVizOk(parsed)
 
-    return tableToObjects(parsed.table) as T[]
+    const rows = tableToObjects(parsed.table)
+    return options.schema ? validateRows(options.schema, rows) : rows
   }
 }
 
