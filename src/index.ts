@@ -16,6 +16,24 @@ export {
 } from './sheet-query/conditions.ts'
 export { parseGVizResponse, assertGVizOk, tableToObjects } from './sheet-query/gviz.ts'
 
+export { appendRow, updateRowById, deleteRowById } from './sheet-write/mutations.ts'
+export { findRowNumberById } from './sheet-write/row-identity.ts'
+export {
+  getValues,
+  appendValues,
+  updateValues,
+  batchUpdate,
+  resolveSheetId,
+} from './sheet-write/sheets-client.ts'
+export {
+  columnLetter,
+  quoteSheetName,
+  rowRange,
+  tableRange,
+  columnRange,
+} from './sheet-write/a1.ts'
+export { serializeWriteValue, recordToRow, rowToRecord } from './sheet-write/sheet-write.utils.ts'
+
 export type { Condition, ColumnValue } from './sheet-query/conditions.ts'
 export type {
   ExecuteOptions,
@@ -35,3 +53,10 @@ export type {
   GVizTable,
   SheetRow,
 } from './sheet-query/gviz.types.ts'
+export type {
+  CellInput,
+  SheetsApiContext,
+  SheetTable,
+  WriteRecord,
+  WriteValue,
+} from './sheet-write/sheet-write.types.ts'
