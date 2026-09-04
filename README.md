@@ -22,6 +22,10 @@ pnpm dev          # packages/core watch 빌드
 `packages/core`의 `exports`는 `src/index.ts`를 가리키므로 워크스페이스 안에서는 **빌드 없이 소스가 바로 해석**됩니다.
 publish 시점에는 `publishConfig.exports`가 `dist/index.mjs`로 교체되고 `files: ["dist"]`로 소스는 제외됩니다.
 
+`main`에 push하면 `.github/workflows/pages.yml`이 `pnpm check`·`pnpm test`를 통과시킨 뒤
+브라우저 예제를 GitHub Pages에 배포합니다. Pages는 프로젝트 사이트를 `/<repo>/` 아래에 서빙하므로
+빌드는 `--base=/sheet-query/`로 돕니다 (`build:pages` 스크립트).
+
 ## 사용법 (Layer 0: 읽기)
 
 ```ts
@@ -109,6 +113,8 @@ await verifyTableHeaders(ctx, table)
 ## 예제
 
 ### 브라우저 GUI — 쿼리 플레이그라운드
+
+**라이브 데모: <https://cbcruk.github.io/sheet-query/>** (`main` push 시 자동 배포)
 
 ```bash
 pnpm --filter @sheet-query/examples dev        # 로컬 개발 서버

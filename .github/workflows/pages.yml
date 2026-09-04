@@ -1,0 +1,64 @@
+# Publishes the browser example (examples/browser) to GitHub Pages.
+#
+# The page talks to the Google Visualization API straight from the browser, so
+# there is nothing to run server-side — a static artifact is the whole deploy.
+name: Deploy example to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/**'
+      - 'packages/core/src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Gate the deploy on the same checks that run locally.
+      - run: pnpm check
+      - run: pnpm test
+
+      - run: pnpm --filter @sheet-query/examples build:pages
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: examples/browser/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

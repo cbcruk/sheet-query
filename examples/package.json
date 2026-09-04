@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vp dev browser",
     "build": "vp build browser",
+    "build:pages": "vp build browser --base=/sheet-query/",
     "preview": "vp preview browser",
     "verify-read": "node verify-read.ts",
     "discoveries": "node discoveries.ts"
