@@ -1,195 +1,257 @@
 # sheet-query
 
-Google Sheets를 코드에서 데이터 저장소처럼 다루는 라이브러리. SQL-like 쿼리로 읽고, 타입 안전하게 쓰고, schema로 검증합니다.
+Treat a Google Sheet like a data store: read it with SQL-like queries, write to it
+type-safely, and validate rows against a schema.
 
-> 현재 **Phase 1 / Layer 0** 구현됨: GViz 기반 읽기 쿼리 빌더 (`sheetQuery`). 쓰기(server proxy)·row identity는 다음 단계입니다. 자세한 로드맵은 [`CLAUDE.md`](./CLAUDE.md) 참고.
+**[Try the live playground →](https://cbcruk.github.io/sheet-query/)** — build a query,
+watch the generated GViz string update as you type, and run it against a real sheet.
 
-## 설치 & 개발
+> **Status.** The read, write, and row-identity core is implemented, along with Standard
+> Schema validation and header drift detection. Still open: the auth-strategy abstraction,
+> quota handling and request batching, and the server proxy that holds the Service Account
+> key. The TanStack DB adapter is deliberately deferred until the core settles — see
+> [`CLAUDE.md`](./CLAUDE.md) for the full roadmap.
+>
+> Not published to npm yet (`0.0.0`).
 
-pnpm workspace 모노레포입니다. publish되는 패키지는 `packages/core`(= `sheet-query`) 하나뿐이고,
-루트는 워크스페이스 오케스트레이션과 공용 lint·format 설정만 담당합니다.
+## Reading
 
-[Vite+](https://viteplus.dev) 통합 툴체인(`vp`)을 사용합니다 — 테스트(vitest), 번들(rolldown/tsdown), lint·format(oxlint/oxfmt).
-
-```bash
-pnpm install
-pnpm test         # 워크스페이스 전체 테스트 (vitest)
-pnpm check        # 워크스페이스 전체 format + lint + typecheck
-pnpm build        # vp run -r build (패키지별 pack)
-pnpm dev          # packages/core watch 빌드
-```
-
-`packages/core`의 `exports`는 `src/index.ts`를 가리키므로 워크스페이스 안에서는 **빌드 없이 소스가 바로 해석**됩니다.
-publish 시점에는 `publishConfig.exports`가 `dist/index.mjs`로 교체되고 `files: ["dist"]`로 소스는 제외됩니다.
-
-`main`에 push하면 `.github/workflows/pages.yml`이 `pnpm check`·`pnpm test`를 통과시킨 뒤
-브라우저 예제를 GitHub Pages에 배포합니다. Pages는 프로젝트 사이트를 `/<repo>/` 아래에 서빙하므로
-빌드는 `--base=/sheet-query/`로 돕니다 (`build:pages` 스크립트).
-
-## 사용법 (Layer 0: 읽기)
+Reads go through the [Google Visualization Query API][gviz], which is SQL-like and needs no
+authentication for publicly readable sheets. The builder is chainable and lazy — nothing is
+requested until `execute()`.
 
 ```ts
-import { sheetQuery, eq, and, gt } from 'sheet-query'
+import { sheetQuery, and, eq, gt } from 'sheet-query'
 
 const rows = await sheetQuery(spreadsheetId, { sheet: 'people' })
   .select('A', 'B', 'C')
-  .where(and(eq('C', '서울'), gt('D', 100)))
+  .where(and(eq('C', 'Seoul'), gt('D', 100)))
   .orderBy('B', 'desc')
   .limit(10)
   .execute()
 ```
 
-쿼리를 실행하지 않고 문자열/URL만 얻을 수도 있습니다:
+Because it is lazy, you can inspect the query without sending it — useful for debugging and
+for logging what a request will do:
 
 ```ts
 const q = sheetQuery(spreadsheetId).select('A').where(eq('B', true))
+
 q.toQuery() // "SELECT A WHERE B = true"
-q.toUrl() // 전체 GViz 요청 URL
+q.toUrl() //  the full GViz request URL
 ```
 
-### 조건 헬퍼
+Columns are addressed by their GViz letter (`A`, `B`, …), and rows come back keyed by the
+sheet's header labels.
 
-`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like`, `isNull`, `isNotNull`, `and`, `or`.
-값은 GViz 리터럴로 자동 직렬화됩니다(문자열 따옴표 escape, `Date` → `datetime '...'`).
+### Condition helpers
 
-### 인증
+`eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like`, `isNull`, `isNotNull`, combined with `and` /
+`or`. Values are serialized to GViz literals for you — strings are quoted and escaped, and
+`Date` becomes `datetime '...'` — which is where hand-built query strings usually go wrong.
 
-- **public 시트**: 옵션 없이 `execute()`.
-- **OAuth 보호 시트**: `execute({ accessToken })`로 Bearer 토큰 전달.
+### Query options
 
-## 쓰기 (Layer 1/2: Sheets API)
+| Option    | Meaning                                                             |
+| --------- | ------------------------------------------------------------------- |
+| `sheet`   | Tab name to query.                                                  |
+| `gid`     | Numeric tab id, for when the tab name is unstable.                  |
+| `headers` | Number of header rows, default `1`. Set `0` for a headerless sheet. |
 
-쓰기는 access token만 받는 transport·auth 독립적인 코어입니다. `id` 컬럼으로 row를 찾아 작업합니다 (row index는 mutable하므로 매번 조회).
+`headers` matters more than it looks: left to guess, GViz sometimes reads the header row as
+data and returns empty column labels.
+
+### Execute options
+
+`execute()` takes `accessToken` (a bearer token for non-public sheets), `schema`,
+`verifyHeaders`, plus `fetch` and `signal` for supplying your own transport or cancelling a
+request.
+
+## Writing
+
+GViz is read-only, so writes go through the [Sheets API v4][sheets-api]. The write core is
+transport- and auth-agnostic: it takes a ready access token and never knows whether it came
+from a Service Account or an OAuth flow.
+
+Row indices shift when rows are inserted or deleted, so they are never trusted. Every
+mutation looks the row up by its `id` column first.
 
 ```ts
 import { appendRow, updateRowById, deleteRowById } from 'sheet-query'
 
-const ctx = { spreadsheetId, accessToken } // SA/OAuth 어디서 왔든 무관
-const table = { sheet: 'people', columns: ['id', 'name', 'age', 'city', 'active', 'joined'] }
+const ctx = { spreadsheetId, accessToken }
+const table = {
+  sheet: 'people',
+  columns: ['id', 'name', 'age', 'city', 'active', 'joined'],
+}
 
 await appendRow(ctx, table, { id: 9, name: 'Xavier', age: 20 })
-await updateRowById(ctx, table, 9, { age: 21 }) // 기존 행과 merge (last-write-wins)
+await updateRowById(ctx, table, 9, { age: 21 }) // merges into the existing row
 await deleteRowById(ctx, table, 9)
 ```
 
-## 스키마 검증 (Standard Schema)
+Updates are last-write-wins; there is no ETag or version column yet.
 
-[Standard Schema](https://standardschema.dev) 호환 라이브러리(Zod 3.24+, Valibot, ArkType...)를 그대로 사용합니다. 코어는 인터페이스만 인라인해 **런타임 의존성이 없습니다**.
+A `table` also accepts `idColumn` (defaults to `'id'`), `headerRows` (defaults to `1`), and
+`sheetId` — passing the numeric tab id lets `deleteRowById` skip a metadata round-trip.
+
+## Schema validation
+
+Any [Standard Schema][standard-schema] library works — Zod 3.24+, Valibot, ArkType. The core
+inlines the interface rather than depending on one, so it stays **runtime-dependency-free**.
 
 ```ts
 import { z } from 'zod'
 
 const personSchema = z.object({ id: z.number(), name: z.string(), age: z.number() })
 
-// 읽기: 검증된 타입으로 반환 (실패 시 throw)
+// Reading: rows come back as the schema's output type, or it throws.
 const people = await sheetQuery(spreadsheetId, { sheet: 'people' }).execute({
   schema: personSchema,
 })
 
-// 쓰기: table.schema 지정 시 append/update 전에 검증
+// Writing: set `schema` on the table and append/update validate before sending.
 const table = { sheet: 'people', columns: ['id', 'name', 'age'], schema: personSchema }
 await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
 ```
 
-## 헤더 변경 감지
+## Header drift
 
-시트 헤더가 바뀌면 매핑이 조용히 깨집니다 (특히 쓰기는 컬럼 position 기반). 기대 헤더와 실제 헤더를 비교해 drift를 잡습니다.
+A spreadsheet is a shared document, and someone renaming or reordering a column is the
+normal failure mode. Writes map records to cells by column position, so drift breaks the
+mapping silently. Compare the expected headers against the real ones instead:
 
 ```ts
-// 읽기: GViz 응답의 컬럼 라벨 검증
+// Reading: check the column labels in the GViz response.
 await sheetQuery(spreadsheetId, { sheet: 'people' }).execute({
   verifyHeaders: ['id', 'name', 'age'],
 })
 
-// 쓰기: table.verifyHeaders로 mutation 전 헤더 행 검증 (drift 시 throw, 쓰기 전 중단)
+// Writing: verify the header row before every mutation, and stop before writing.
 const table = { sheet: 'people', columns: ['id', 'name', 'age'], verifyHeaders: true }
 await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
 
-// 수동/주기적 검증
-import { verifyTableHeaders, compareHeaders } from 'sheet-query'
+// Or check on your own schedule.
+import { verifyTableHeaders } from 'sheet-query'
 await verifyTableHeaders(ctx, table)
 ```
 
-## 예제
+Drift throws a `SheetQueryError` naming every mismatched position. Errors are always thrown,
+never swallowed. `compareHeaders` returns the same comparison as data if you would rather
+report it than throw.
 
-### 브라우저 GUI — 쿼리 플레이그라운드
+## How it works
 
-**라이브 데모: <https://cbcruk.github.io/sheet-query/>** (`main` push 시 자동 배포)
+- **JSONP unwrapping.** GViz replies with a `setResponse(...)` wrapper; it is stripped before
+  parsing the JSON inside.
+- **Header-first key mapping.** Header labels become object keys, falling back to the column
+  id (`A`, `B`, …) when a sheet has none — which is what `=QUERY()` over `IMPORTRANGE`
+  produces.
+- **Native types.** `date` / `datetime` become `Date`, and numbers and booleans arrive as
+  themselves rather than as strings.
+
+## Examples
+
+### Browser playground
 
 ```bash
-pnpm --filter @sheet-query/examples dev        # 로컬 개발 서버
-pnpm --filter @sheet-query/examples dev --host # 같은 네트워크의 다른 기기에서도 접속
+pnpm --filter @sheet-query/examples dev        # local dev server
+pnpm --filter @sheet-query/examples dev --host # reachable from other devices
 ```
 
-체이닝 API로 쿼리를 조립하면서 `toQuery()` 문자열과 `toUrl()`이 **네트워크 요청 없이** 실시간으로
-갱신되는 걸 보고, `execute()`로 실제 공개 시트를 조회합니다. 서버 proxy 없이 브라우저가 GViz를
-직접 호출합니다 — 공개 시트에 대해 GViz가 요청 `Origin`을 그대로 echo하기 때문입니다.
+Deployed at **<https://cbcruk.github.io/sheet-query/>** on every push to `main`.
 
-- 탭 전환(발견물·도시·도서) 시 컬럼 목록과 타입이 따라 바뀝니다
-- WHERE 조건은 컬럼 타입에 맞춰 직렬화되고, 생성된 GViz 리터럴을 조건마다 보여줍니다
-- `verifyHeaders` / `schema` 옵션을 켜고 끌 수 있고, **실패 케이스도 프리셋으로 재현**됩니다
-  (헤더 drift, select와 schema 불일치) — 에러는 `SheetQueryError` 메시지 그대로 노출
-- 프리셋 8개는 아래 `discoveries.ts`의 시나리오와 1:1로 대응합니다
+The page calls GViz directly with no server in between — GViz echoes the request `Origin`
+for publicly readable sheets, so the read path works straight from a browser. Switching tabs
+swaps the column list and types; each WHERE condition shows the GViz literal it serialized
+to; and `verifyHeaders` and `schema` can be toggled on, with presets that reproduce the
+**failure** cases too, surfacing the `SheetQueryError` message verbatim.
 
-### Node 스크립트
+### Node scripts
 
 ```bash
-# 임의의 시트로 read 코어 스모크 테스트 (쿼리·URL·행 출력)
+# Smoke-test the read core against any sheet (prints query, URL, rows).
 node examples/verify-read.ts <SPREADSHEET_ID> [SHEET_NAME]
 
-# 실제 공개 시트(대항해시대 3 발견물 자료)로 읽기 기능 전체 둘러보기
+# Walk the whole read surface against a real public sheet.
 node examples/discoveries.ts
 ```
 
-`examples/discoveries.ts`는 탭 3개(발견물·도시·도서)를 가진 실제 시트를 대상으로
-WHERE/ORDER BY/LIMIT, GROUP BY 집계, LIKE, 탭 간 조인, `verifyHeaders` drift 감지,
-Standard Schema 검증(의존성 없이 손으로 구현한 스키마)까지 한 번에 보여줍니다.
+`discoveries.ts` runs against a fan-maintained game reference with three tabs, Korean headers
+and values, blank cells and ragged trailing columns — covering WHERE/ORDER BY/LIMIT, GROUP BY
+aggregation, LIKE, a cross-tab join in plain JS, header drift detection, and schema validation
+with a hand-rolled Standard Schema. The playground's eight presets mirror it one-to-one.
 
-## 핵심 동작
-
-- **JSONP 언랩**: GViz의 `setResponse(...)` wrapper를 제거 후 JSON 파싱.
-- **헤더 우선 매핑**: 헤더 label이 있으면 키로 사용, 없으면 컬럼 id(`A`, `B`...) fallback.
-- **타입 변환**: `date`/`datetime` → JS `Date`, `number`/`boolean` 네이티브 변환.
-
-## 구조
+## Repository layout
 
 ```
 packages/
-  core/                            # publish 대상 — npm: sheet-query
+  core/                            # the published package — npm: sheet-query
     src/
       index.ts                     # public exports
-      sheet-query/                 # Layer 0: GViz 읽기
-        sheet-query.ts             # SheetQuery 빌더 + sheetQuery 팩토리
-        sheet-query.utils.ts       # tq 쿼리 / URL 빌드
-        conditions.ts              # WHERE 조건 + 값 직렬화
-        gviz.ts                    # JSONP 파싱 + table → objects
-      sheet-write/                 # Layer 1/2: Sheets API 쓰기 + row identity
+      sheet-query/                 # Layer 0: GViz reads
+        sheet-query.ts             # SheetQuery builder + sheetQuery factory
+        sheet-query.utils.ts       # tq query / URL construction
+        conditions.ts              # WHERE conditions + value serialization
+        gviz.ts                    # JSONP parsing + table → objects
+      sheet-write/                 # Layer 1/2: Sheets API writes + row identity
         mutations.ts               # append / update / delete
         row-identity.ts            # id → row index lookup
-        sheets-client.ts           # Sheets API v4 호출
-        a1.ts                      # A1 표기법
-      schema/                      # Standard Schema 검증
-      headers/                     # 헤더 drift 비교
+        sheets-client.ts           # Sheets API v4 calls
+        a1.ts                      # A1 notation
+      schema/                      # Standard Schema validation
+      headers/                     # header drift comparison
 
-examples/                          # private — workspace:* 로 core 소비
-  verify-read.ts                   # Node: read 스모크 테스트
-  discoveries.ts                   # Node: 읽기 기능 전체 워크스루
-  browser/                         # 브라우저 GUI (Vite) — proxy 없이 GViz 직접 호출
+examples/                          # private — consumes core via workspace:*
+  verify-read.ts                   # Node: read smoke test
+  discoveries.ts                   # Node: full read walkthrough
+  browser/                         # browser GUI (Vite) — calls GViz with no proxy
     index.html
-    main.ts                        # UI 렌더링 + execute()
-    query.ts                       # UI 상태 → SheetQuery, 프리셋, 예제 schema
-    sheets.ts                      # 탭·컬럼 메타데이터
+    main.ts                        # UI rendering + execute()
+    query.ts                       # UI state → SheetQuery, presets, example schema
+    sheets.ts                      # tab and column metadata
     styles.css
 ```
 
-향후 패키지(모두 코어에 의존, 역방향 없음):
+Packages still to come. Everything depends on the core; nothing depends the other way:
 
-| 패키지                 | 이름                       | 상태                                                 |
-| ---------------------- | -------------------------- | ---------------------------------------------------- |
-| `packages/core`        | `sheet-query`              | 현재 유일한 publish 대상                             |
-| `packages/worker`      | `@sheet-query/worker`      | Cloudflare Workers Service Account proxy — 다음 단계 |
-| `packages/tanstack-db` | `@sheet-query/tanstack-db` | Phase 3, 코어 안정화 전까지 **보류**                 |
+| Package                | Name                       | Status                                          |
+| ---------------------- | -------------------------- | ----------------------------------------------- |
+| `packages/core`        | `sheet-query`              | The only published package today                |
+| `packages/worker`      | `@sheet-query/worker`      | Cloudflare Workers Service Account proxy — next |
+| `packages/tanstack-db` | `@sheet-query/tanstack-db` | Phase 3, **on hold** until the core settles     |
 
-패키지를 나눈 이유는 의존성 경계를 컨벤션이 아니라 구조로 강제하기 위해서입니다.
-Workers proxy는 wrangler를, 어댑터는 BETA인 TanStack DB를 끌고 오는데,
-그 어느 것도 zero-dependency여야 하는 코어의 의존성 트리에 들어와선 안 됩니다.
+They are separate packages so the dependency boundary is enforced by structure rather than by
+convention: the Workers proxy pulls in wrangler and the adapter pulls in a BETA TanStack DB,
+and neither belongs in the dependency tree of a core that has to stay zero-dependency.
+
+## Development
+
+A pnpm workspace monorepo built on the [Vite+][viteplus] toolchain (`vp`) — vitest for tests,
+rolldown/tsdown for bundling, oxlint/oxfmt for lint and format.
+
+```bash
+pnpm install
+pnpm test         # test the whole workspace
+pnpm check        # format + lint + typecheck the whole workspace
+pnpm build        # vp run -r build
+pnpm dev          # watch-build packages/core
+```
+
+Shared lint and format rules live in the root `vite.config.ts` and are spread into each
+package's config, so the formatter cannot disagree between the root and a package.
+
+`packages/core` sets `exports` to `src/index.ts`, so everything in the workspace resolves
+**live source with no build step** — the browser example included. At publish time
+`publishConfig.exports` swaps in `dist/index.mjs`, and `files: ["dist"]` keeps the source out
+of the tarball. For that reason `pack.exports` must stay `false`: with it on, every build
+rewrote `exports` to `dist` and broke local resolution.
+
+Pushing to `main` runs `.github/workflows/pages.yml`, which gates on `pnpm check` and
+`pnpm test` before deploying the browser example to GitHub Pages. Pages serves project sites
+under `/<repo>/`, so that build runs with `--base=/sheet-query/` via the `build:pages` script.
+
+[gviz]: https://developers.google.com/chart/interactive/docs/querylanguage
+[sheets-api]: https://developers.google.com/sheets/api
+[standard-schema]: https://standardschema.dev
+[viteplus]: https://viteplus.dev
