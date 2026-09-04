@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sheet-query playground</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="masthead-main">
+        <h1>sheet-query <span>playground</span></h1>
+        <p>
+          체이닝 API로 GViz 쿼리를 조립하고, 생성된 <code>tq</code> 문자열과 요청 URL을 실시간으로
+          확인한 뒤, 브라우저에서 실제 공개 시트를 직접 조회합니다 — 서버 proxy 없음.
+        </p>
+      </div>
+      <a id="sheet-link" class="sheet-link" target="_blank" rel="noreferrer">
+        시트 열기 <span aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main class="layout">
+      <aside id="builder" class="builder"></aside>
+
+      <section class="output-column">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>생성된 쿼리</h2>
+            <span class="hint">네트워크 요청 없이 갱신됩니다</span>
+          </div>
+          <div id="query-card" class="panel-body"></div>
+        </section>
+
+        <div class="run-bar">
+          <button id="run" class="run-button" type="button">execute()</button>
+          <span class="run-note">공개 시트라 인증 없이 호출됩니다</span>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>결과</h2>
+            <span class="hint">null은 ∅, 숫자는 우측 정렬</span>
+          </div>
+          <div id="output" class="panel-body"></div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

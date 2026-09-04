@@ -106,6 +106,39 @@ import { verifyTableHeaders, compareHeaders } from 'sheet-query'
 await verifyTableHeaders(ctx, table)
 ```
 
+## 예제
+
+### 브라우저 GUI — 쿼리 플레이그라운드
+
+```bash
+pnpm --filter @sheet-query/examples dev        # 로컬 개발 서버
+pnpm --filter @sheet-query/examples dev --host # 같은 네트워크의 다른 기기에서도 접속
+```
+
+체이닝 API로 쿼리를 조립하면서 `toQuery()` 문자열과 `toUrl()`이 **네트워크 요청 없이** 실시간으로
+갱신되는 걸 보고, `execute()`로 실제 공개 시트를 조회합니다. 서버 proxy 없이 브라우저가 GViz를
+직접 호출합니다 — 공개 시트에 대해 GViz가 요청 `Origin`을 그대로 echo하기 때문입니다.
+
+- 탭 전환(발견물·도시·도서) 시 컬럼 목록과 타입이 따라 바뀝니다
+- WHERE 조건은 컬럼 타입에 맞춰 직렬화되고, 생성된 GViz 리터럴을 조건마다 보여줍니다
+- `verifyHeaders` / `schema` 옵션을 켜고 끌 수 있고, **실패 케이스도 프리셋으로 재현**됩니다
+  (헤더 drift, select와 schema 불일치) — 에러는 `SheetQueryError` 메시지 그대로 노출
+- 프리셋 8개는 아래 `discoveries.ts`의 시나리오와 1:1로 대응합니다
+
+### Node 스크립트
+
+```bash
+# 임의의 시트로 read 코어 스모크 테스트 (쿼리·URL·행 출력)
+node examples/verify-read.ts <SPREADSHEET_ID> [SHEET_NAME]
+
+# 실제 공개 시트(대항해시대 3 발견물 자료)로 읽기 기능 전체 둘러보기
+node examples/discoveries.ts
+```
+
+`examples/discoveries.ts`는 탭 3개(발견물·도시·도서)를 가진 실제 시트를 대상으로
+WHERE/ORDER BY/LIMIT, GROUP BY 집계, LIKE, 탭 간 조인, `verifyHeaders` drift 감지,
+Standard Schema 검증(의존성 없이 손으로 구현한 스키마)까지 한 번에 보여줍니다.
+
 ## 핵심 동작
 
 - **JSONP 언랩**: GViz의 `setResponse(...)` wrapper를 제거 후 JSON 파싱.
@@ -133,7 +166,14 @@ packages/
       headers/                     # 헤더 drift 비교
 
 examples/                          # private — workspace:* 로 core 소비
-  verify-read.ts
+  verify-read.ts                   # Node: read 스모크 테스트
+  discoveries.ts                   # Node: 읽기 기능 전체 워크스루
+  browser/                         # 브라우저 GUI (Vite) — proxy 없이 GViz 직접 호출
+    index.html
+    main.ts                        # UI 렌더링 + execute()
+    query.ts                       # UI 상태 → SheetQuery, 프리셋, 예제 schema
+    sheets.ts                      # 탭·컬럼 메타데이터
+    styles.css
 ```
 
 향후 패키지(모두 코어에 의존, 역방향 없음):

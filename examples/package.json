@@ -4,13 +4,18 @@
   "description": "Runnable examples exercising the core against real Google Sheets.",
   "type": "module",
   "scripts": {
-    "verify-read": "node verify-read.ts"
+    "dev": "vp dev browser",
+    "build": "vp build browser",
+    "preview": "vp preview browser",
+    "verify-read": "node verify-read.ts",
+    "discoveries": "node discoveries.ts"
   },
   "dependencies": {
     "sheet-query": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

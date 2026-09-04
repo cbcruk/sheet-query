@@ -105,6 +105,11 @@ Phase 1 코드를 정리하여 재사용 가능한 형태로:
 
 이유: 불특정 다수가 동시 편집 가능한 시나리오에서 Service Account 키를 브라우저에 노출할 수 없음. 읽기는 OAuth 토큰으로 직접 가능하지만 쓰기는 권한 분리를 위해 서버 경유.
 
+> **브라우저 직접 읽기 CORS 확인됨** — GViz는 공개 시트에 대해 요청 `Origin`을 그대로
+> `access-control-allow-origin`으로 echo하고 OPTIONS preflight도 200을 반환한다.
+> 즉 공개 시트 읽기는 proxy 없이 브라우저에서 바로 된다 (`examples/browser`로 실증).
+> 비공개 시트는 `execute({ accessToken })`으로 Bearer 토큰이 필요하다.
+
 ## 핵심 설계 결정
 
 ### 1. 읽기와 쓰기의 분리
@@ -180,6 +185,12 @@ SELECT COUNT(A)
 - [x] **컬럼 구조 확정** — `A:id`(number, unique), `B:name`, `C:age`, `D:city`, `E:active`(bool), `F:joined`(date). `id` 컬럼은 A열.
 
 > Layer 0 read는 이 시트로 end-to-end 검증 완료 (타입 변환, WHERE 한글/불리언/숫자, AND, ORDER BY).
+
+- [x] **읽기 예제용 실전 시트** — id `1-SIyn5k0n19cIdfbMWhpBaQkPukBEl7Dit0xbOBxUII` (공개 읽기, 대항해시대 3 자료).
+      탭 3개(`발견물`/`도시`/`도서`), 한글 헤더·값, 빈 셀과 후행 빈 컬럼이 섞인 실제 데이터라
+      PoC 시트가 못 잡는 케이스를 검증한다. `id` 컬럼이 없어 **읽기 전용**.
+      → `examples/discoveries.ts` (Node), `examples/browser` (GUI 플레이그라운드)
+      주의: `도서` 탭은 `headers=1` 없이 조회하면 GViz가 헤더 행 수를 잘못 추측해 라벨이 비어버린다.
 
 ### 인증
 
