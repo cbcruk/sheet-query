@@ -1,7 +1,7 @@
 /**
  * Read walkthrough against a real, public, human-maintained Google Sheet.
  *
- * The sheet is a fan-made reference for the game *Uncharted Waters II*
+ * The sheet is a fan-made reference for the game *Uncharted Waters III*
  * (대항해시대 3) with three tabs — 발견물 (discoveries), 도시 (cities), 도서
  * (books) — so it exercises what `verify-read.ts` cannot: Korean headers and
  * values, multiple tabs, ragged trailing columns, and blank cells.
