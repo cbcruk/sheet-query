@@ -1,0 +1,16 @@
+{
+  "name": "@sheet-query/examples",
+  "private": true,
+  "description": "Runnable examples exercising the core against real Google Sheets.",
+  "type": "module",
+  "scripts": {
+    "verify-read": "node verify-read.ts"
+  },
+  "dependencies": {
+    "sheet-query": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

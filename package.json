@@ -1,36 +1,18 @@
 {
-  "name": "sheet-query",
-  "version": "0.0.0",
-  "description": "Treat Google Sheets like a data store: SQL-like reads via GViz, type-safe writes, schema validation.",
-  "keywords": [
-    "google-sheets",
-    "gviz",
-    "query",
-    "sql"
-  ],
-  "license": "MIT",
-  "files": [
-    "dist"
-  ],
+  "name": "sheet-query-workspace",
+  "private": true,
+  "description": "Monorepo root for sheet-query. The publishable core lives in packages/core.",
   "type": "module",
-  "exports": {
-    ".": "./dist/index.mjs",
-    "./package.json": "./package.json"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
-    "build": "vp pack",
-    "dev": "vp pack --watch",
+    "build": "vp run -r build",
+    "dev": "vp run -F sheet-query dev",
     "test": "vp test",
-    "check": "vp check",
-    "prepublishOnly": "vp run build"
+    "check": "vp check"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "typescript": "^5.7.0",
-    "vite-plus": "^0.2.1"
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
   },
   "packageManager": "pnpm@10.33.0"
 }

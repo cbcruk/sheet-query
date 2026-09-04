@@ -22,6 +22,28 @@ Layer 3: TanStack DB collection adapter     ← 최대한 뒤로 (보류)
 
 Layer 0~2는 TanStack DB와 무관하게 독립적으로 가치가 있습니다. 그 자체로 "Google Sheets를 DB처럼 쓰는 라이브러리"로 성립합니다.
 
+## 레포 구조 (pnpm workspace 모노레포)
+
+레이어 경계를 컨벤션이 아니라 **패키지 경계로 강제**합니다. 코어는 zero-dependency여야 하는데,
+Workers proxy는 wrangler를 / 어댑터는 BETA인 TanStack DB를 끌고 오기 때문입니다.
+
+```
+packages/
+  core/          npm: sheet-query              Layer 0~2. 현재 유일한 publish 대상
+  worker/        npm: @sheet-query/worker      Layer 1 서버 proxy (Cloudflare Workers) — 다음
+  tanstack-db/   npm: @sheet-query/tanstack-db Layer 3 — Phase 3까지 보류
+examples/        private, workspace:* 로 코어 소비
+```
+
+- 의존 방향은 **항상 코어 ← 나머지**. 코어가 다른 워크스페이스 패키지를 import하면 안 됩니다.
+- `packages/core`의 `exports`는 `src/index.ts`를 가리켜 워크스페이스 안에서는 빌드 없이 소스가 해석됩니다.
+  publish 때 `publishConfig.exports`가 `dist/index.mjs`로 교체됩니다. **`pack.exports`는 `false`로 둘 것** —
+  `true`면 빌드마다 `exports`를 dist로 덮어써서 로컬 소스 해석이 깨집니다.
+- 루트는 publish되지 않는 오케스트레이터(`sheet-query-workspace`). 공용 lint·format 설정은 루트 `vite.config.ts`에
+  두고 패키지 config가 spread해 재사용합니다 (포매터가 루트/패키지 간에 어긋나지 않도록).
+- 툴체인 버전은 `pnpm-workspace.yaml`의 catalog 한 곳에서 관리 (`catalog:` 참조).
+- **아직 만들지 않은 패키지 디렉토리를 미리 만들지 않습니다.** 특히 `tanstack-db`는 Phase 3 보류 대상.
+
 ## 로드맵 (Phase 1 → 2 → 3)
 
 ### Phase 1: 코어 구축 (현재 단계)
@@ -167,6 +189,7 @@ SELECT COUNT(A)
 ### 서버 환경
 
 - [x] **Cloudflare Workers 채택** — Service Account JWT 서명은 Web Crypto(`crypto.subtle`)로 처리
+- [x] **위치 확정** — `packages/worker` (npm `@sheet-query/worker`). wrangler 의존성이 코어로 새지 않도록 별도 패키지
 - [ ] 배포 세부 (라우팅, 환경변수로 SA 키 주입)
 
 ## 코딩 컨벤션

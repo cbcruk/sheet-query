@@ -20,6 +20,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "examples", "vite.config.ts"],
+  "include": ["vite.config.ts"],
   "exclude": ["dist", "node_modules"]
 }

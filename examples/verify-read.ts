@@ -12,7 +12,7 @@
  * The sheet must be readable by GViz — either public ("anyone with the link")
  * or accessed with an OAuth token (set ACCESS_TOKEN to pass one).
  */
-import { sheetQuery } from '../src/index.ts'
+import { sheetQuery } from 'sheet-query'
 
 const spreadsheetId = process.argv[2] ?? process.env.SHEET_ID
 const sheet = process.argv[3] ?? process.env.SHEET_NAME

@@ -6,15 +6,21 @@ Google Sheets를 코드에서 데이터 저장소처럼 다루는 라이브러�
 
 ## 설치 & 개발
 
+pnpm workspace 모노레포입니다. publish되는 패키지는 `packages/core`(= `sheet-query`) 하나뿐이고,
+루트는 워크스페이스 오케스트레이션과 공용 lint·format 설정만 담당합니다.
+
 [Vite+](https://viteplus.dev) 통합 툴체인(`vp`)을 사용합니다 — 테스트(vitest), 번들(rolldown/tsdown), lint·format(oxlint/oxfmt).
 
 ```bash
 pnpm install
-pnpm test         # vp test (vitest)
-pnpm check        # vp check (format + lint + typecheck)
-pnpm build        # vp pack (dist/index.mjs + .d.mts)
-pnpm dev          # vp pack --watch
+pnpm test         # 워크스페이스 전체 테스트 (vitest)
+pnpm check        # 워크스페이스 전체 format + lint + typecheck
+pnpm build        # vp run -r build (패키지별 pack)
+pnpm dev          # packages/core watch 빌드
 ```
+
+`packages/core`의 `exports`는 `src/index.ts`를 가리키므로 워크스페이스 안에서는 **빌드 없이 소스가 바로 해석**됩니다.
+publish 시점에는 `publishConfig.exports`가 `dist/index.mjs`로 교체되고 `files: ["dist"]`로 소스는 제외됩니다.
 
 ## 사용법 (Layer 0: 읽기)
 
@@ -109,14 +115,35 @@ await verifyTableHeaders(ctx, table)
 ## 구조
 
 ```
-src/
-  index.ts                       # public exports
-  sheet-query/
-    sheet-query.ts               # SheetQuery 빌더 + sheetQuery 팩토리
-    sheet-query.types.ts
-    sheet-query.utils.ts         # tq 쿼리 / URL 빌드
-    sheet-query.error.ts
-    conditions.ts                # WHERE 조건 + 값 직렬화
-    gviz.ts                      # JSONP 파싱 + table → objects
-    gviz.types.ts
+packages/
+  core/                            # publish 대상 — npm: sheet-query
+    src/
+      index.ts                     # public exports
+      sheet-query/                 # Layer 0: GViz 읽기
+        sheet-query.ts             # SheetQuery 빌더 + sheetQuery 팩토리
+        sheet-query.utils.ts       # tq 쿼리 / URL 빌드
+        conditions.ts              # WHERE 조건 + 값 직렬화
+        gviz.ts                    # JSONP 파싱 + table → objects
+      sheet-write/                 # Layer 1/2: Sheets API 쓰기 + row identity
+        mutations.ts               # append / update / delete
+        row-identity.ts            # id → row index lookup
+        sheets-client.ts           # Sheets API v4 호출
+        a1.ts                      # A1 표기법
+      schema/                      # Standard Schema 검증
+      headers/                     # 헤더 drift 비교
+
+examples/                          # private — workspace:* 로 core 소비
+  verify-read.ts
 ```
+
+향후 패키지(모두 코어에 의존, 역방향 없음):
+
+| 패키지                 | 이름                       | 상태                                                 |
+| ---------------------- | -------------------------- | ---------------------------------------------------- |
+| `packages/core`        | `sheet-query`              | 현재 유일한 publish 대상                             |
+| `packages/worker`      | `@sheet-query/worker`      | Cloudflare Workers Service Account proxy — 다음 단계 |
+| `packages/tanstack-db` | `@sheet-query/tanstack-db` | Phase 3, 코어 안정화 전까지 **보류**                 |
+
+패키지를 나눈 이유는 의존성 경계를 컨벤션이 아니라 구조로 강제하기 위해서입니다.
+Workers proxy는 wrangler를, 어댑터는 BETA인 TanStack DB를 끌고 오는데,
+그 어느 것도 zero-dependency여야 하는 코어의 의존성 트리에 들어와선 안 됩니다.
