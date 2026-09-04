@@ -182,49 +182,6 @@ and values, blank cells and ragged trailing columns — covering WHERE/ORDER BY/
 aggregation, LIKE, a cross-tab join in plain JS, header drift detection, and schema validation
 with a hand-rolled Standard Schema. The playground's eight presets mirror it one-to-one.
 
-## Repository layout
-
-```
-packages/
-  core/                            # the published package — npm: sheet-query
-    src/
-      index.ts                     # public exports
-      sheet-query/                 # Layer 0: GViz reads
-        sheet-query.ts             # SheetQuery builder + sheetQuery factory
-        sheet-query.utils.ts       # tq query / URL construction
-        conditions.ts              # WHERE conditions + value serialization
-        gviz.ts                    # JSONP parsing + table → objects
-      sheet-write/                 # Layer 1/2: Sheets API writes + row identity
-        mutations.ts               # append / update / delete
-        row-identity.ts            # id → row index lookup
-        sheets-client.ts           # Sheets API v4 calls
-        a1.ts                      # A1 notation
-      schema/                      # Standard Schema validation
-      headers/                     # header drift comparison
-
-examples/                          # private — consumes core via workspace:*
-  verify-read.ts                   # Node: read smoke test
-  discoveries.ts                   # Node: full read walkthrough
-  browser/                         # browser GUI (Vite) — calls GViz with no proxy
-    index.html
-    main.ts                        # UI rendering + execute()
-    query.ts                       # UI state → SheetQuery, presets, example schema
-    sheets.ts                      # tab and column metadata
-    styles.css
-```
-
-Packages still to come. Everything depends on the core; nothing depends the other way:
-
-| Package                | Name                       | Status                                          |
-| ---------------------- | -------------------------- | ----------------------------------------------- |
-| `packages/core`        | `sheet-query`              | The only published package today                |
-| `packages/worker`      | `@sheet-query/worker`      | Cloudflare Workers Service Account proxy — next |
-| `packages/tanstack-db` | `@sheet-query/tanstack-db` | Phase 3, **on hold** until the core settles     |
-
-They are separate packages so the dependency boundary is enforced by structure rather than by
-convention: the Workers proxy pulls in wrangler and the adapter pulls in a BETA TanStack DB,
-and neither belongs in the dependency tree of a core that has to stay zero-dependency.
-
 ## Development
 
 A pnpm workspace monorepo built on the [Vite+][viteplus] toolchain (`vp`) — vitest for tests,
