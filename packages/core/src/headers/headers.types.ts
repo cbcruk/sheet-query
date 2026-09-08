@@ -12,7 +12,10 @@ export interface HeaderMismatch {
 export interface HeaderCheck {
   /** `true` when every position matches. */
   ok: boolean
+  /** The headers that were expected, as given. */
   expected: string[]
+  /** The headers the sheet actually has, as read. */
   actual: string[]
+  /** Every disagreement, in column order. Empty when {@linkcode ok} is `true`. */
   mismatches: HeaderMismatch[]
 }

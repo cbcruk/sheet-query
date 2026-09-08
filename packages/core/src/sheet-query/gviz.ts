@@ -15,7 +15,18 @@ const GVIZ_DATE = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/
 /**
  * Strips the JSONP wrapper from a raw GViz response body and parses the JSON.
  *
+ * GViz answers `tqx=out:json` with JavaScript, not JSON — a leading comment and
+ * a `setResponse(...)` call — so the payload has to be cut out before parsing.
+ *
  * @throws {SheetQueryError} when the wrapper is missing or the JSON is invalid.
+ *
+ * @example Parse a response fetched by hand
+ * ```ts
+ * import { parseGVizResponse, sheetQuery } from 'sheet-query'
+ *
+ * const response = await fetch(sheetQuery('1VwfZpdR...').toUrl())
+ * const parsed = parseGVizResponse(await response.text())
+ * ```
  */
 export function parseGVizResponse(body: string): GVizResponse {
   const match = body.match(JSONP_WRAPPER)
@@ -31,7 +42,15 @@ export function parseGVizResponse(body: string): GVizResponse {
   }
 }
 
-/** Throws when the response carries an error status, surfacing GViz messages. */
+/**
+ * Asserts a parsed response succeeded, joining GViz's own error messages into
+ * the thrown message.
+ *
+ * GViz reports failures with HTTP 200 and `status: 'error'`, so a response that
+ * fetched cleanly still has to be checked.
+ *
+ * @throws {SheetQueryError} when `status` is `'error'`.
+ */
 export function assertGVizOk(response: GVizResponse): void {
   if (response.status === 'error') {
     const detail =
@@ -42,6 +61,14 @@ export function assertGVizOk(response: GVizResponse): void {
   }
 }
 
+/**
+ * Parses GViz's `Date(2024,0,15)` cell encoding into a `Date`.
+ *
+ * The month is zero-based, matching the `Date` constructor, and the parts are
+ * read as local time because the sheet's values are wall-clock.
+ *
+ * @throws {SheetQueryError} when the value is not in that form.
+ */
 function parseGVizDate(raw: string): Date {
   const match = raw.match(GVIZ_DATE)
 
@@ -61,6 +88,11 @@ function parseGVizDate(raw: string): Date {
   )
 }
 
+/**
+ * Coerces one raw cell value to a native JS type, using the column's declared
+ * type. Missing cells become `null`; `timeofday` stays an `[h, m, s, ms]` tuple,
+ * which has no JS equivalent.
+ */
 function convertCellValue(value: unknown, type: GVizColumnType): CellValue {
   if (value === null || value === undefined) {
     return null
@@ -95,6 +127,11 @@ function resolveColumnKeys(table: GVizTable): string[] {
 /**
  * Converts a GViz table into an array of plain objects keyed by column label,
  * with cell values coerced to native JS types (numbers, booleans, `Date`s).
+ *
+ * Empty cells become `null` rather than being omitted, so every row has the
+ * same keys.
+ *
+ * @throws {SheetQueryError} when a date cell is not in GViz's `Date(...)` form.
  */
 export function tableToObjects(table: GVizTable): SheetRow[] {
   const keys = resolveColumnKeys(table)

@@ -21,11 +21,19 @@ import {
 } from './query.ts'
 import type { ConditionInput, Operator, State } from './query.ts'
 
+/** The single source of truth; every panel renders from it and patches it. */
 let state: State = defaultState()
+/** Rows and elapsed time from the last successful run, or `null` before one. */
 let lastRun: { rows: SheetRow[]; ms: number } | null = null
+/** Guards against overlapping requests while one is in flight. */
 let running = false
+/** Message from the last failed run, cleared when a new one starts. */
 let failure: string | null = null
 
+/**
+ * Creates an element, assigns the given properties, and appends the children —
+ * a minimal stand-in for a framework, so the example stays dependency-free.
+ */
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props: Partial<HTMLElementTagNameMap[K]> & { class?: string } = {},
@@ -47,6 +55,7 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node
 }
 
+/** Builds a `<select>` bound to a value, reporting the new one on change. */
 function pick<T extends string>(
   value: T,
   options: { value: T; label: string }[],
@@ -64,6 +73,7 @@ function pick<T extends string>(
   return select
 }
 
+/** Applies a state patch and re-renders. The only way panels mutate state. */
 function update(patch: Partial<State>): void {
   state = { ...state, ...patch }
   render()
@@ -71,6 +81,7 @@ function update(patch: Partial<State>): void {
 
 /* ------------------------------------------------------------------ panels */
 
+/** Buttons that load a preset and immediately run it. */
 function presetPanel(): HTMLElement {
   const buttons = PRESETS.map((item) =>
     el(
@@ -98,6 +109,7 @@ function presetPanel(): HTMLElement {
   })
 }
 
+/** Tab picker. Switching tabs resets the state, since column ids differ. */
 function tabPanel(): HTMLElement {
   const options = TABS.map((tab) =>
     el(
@@ -124,6 +136,7 @@ function tabPanel(): HTMLElement {
   return panel('탭', [el('div', { class: 'tabs' }, options)])
 }
 
+/** Column chips for SELECT, plus the free-text field for aggregate expressions. */
 function selectPanel(): HTMLElement {
   const tab = tabByName(state.tab)
 
@@ -170,6 +183,11 @@ function selectPanel(): HTMLElement {
   )
 }
 
+/**
+ * One WHERE row: column, operator, value, and the GViz literal that value
+ * serializes to. Typing re-renders only the query card and this row's literal,
+ * so the input keeps focus.
+ */
 function conditionRow(input: ConditionInput, index: number): HTMLElement {
   const tab = tabByName(state.tab)
   const takesValue = OPERATORS[input.operator].arity === 1
@@ -232,6 +250,7 @@ function conditionRow(input: ConditionInput, index: number): HTMLElement {
   ])
 }
 
+/** Refreshes one condition row's serialized-literal hint in place. */
 function renderLiteral(index: number): void {
   const input = state.conditions[index]
   const node = document.getElementById(`literal-${index}`)
@@ -241,6 +260,7 @@ function renderLiteral(index: number): void {
   }
 }
 
+/** The condition rows, the AND/OR selector, and the add button. */
 function wherePanel(): HTMLElement {
   const rows = state.conditions.map(conditionRow)
 
@@ -273,6 +293,7 @@ function wherePanel(): HTMLElement {
   })
 }
 
+/** GROUP BY chips plus the ORDER BY, LIMIT, and OFFSET controls. */
 function shapePanel(): HTMLElement {
   const tab = tabByName(state.tab)
   const aggregates = state.aggregate
@@ -344,6 +365,7 @@ function shapePanel(): HTMLElement {
   ])
 }
 
+/** A labelled checkbox with a note explaining what enabling it does. */
 function toggle(
   label: string,
   note: string,
@@ -367,6 +389,7 @@ function toggle(
   ])
 }
 
+/** The `execute()` options: header verification and schema validation. */
 function optionsPanel(): HTMLElement {
   return panel('execute() 옵션', [
     toggle('verifyHeaders', '실제 헤더가 기대와 다르면 throw', state.verifyHeaders, (next) =>
@@ -388,6 +411,7 @@ function optionsPanel(): HTMLElement {
   ])
 }
 
+/** The section shell every panel above is wrapped in. */
 function panel(
   title: string,
   children: (Node | string)[],
@@ -407,6 +431,7 @@ function panel(
 
 /* ------------------------------------------------------------ query + run */
 
+/** Copies text to the clipboard, confirming briefly in the button label. */
 function copyButton(getText: () => string): HTMLButtonElement {
   const button = el('button', { class: 'ghost-button copy', type: 'button', textContent: '복사' })
 
@@ -422,6 +447,11 @@ function copyButton(getText: () => string): HTMLButtonElement {
   return button
 }
 
+/**
+ * Renders `toQuery()` and `toUrl()` for the current state, without executing.
+ * An invalid state (a non-numeric value on a number column, say) shows the
+ * builder's own error rather than a stale query.
+ */
 function renderQueryCard(): void {
   const host = document.getElementById('query-card')
 
@@ -475,6 +505,12 @@ function renderQueryCard(): void {
   }
 }
 
+/**
+ * Executes the current query against the live sheet and stores the outcome.
+ *
+ * Never rejects: failures are captured into `failure` so they render as part of
+ * the page, which is the point of the drift and schema toggles.
+ */
 async function run(): Promise<void> {
   if (running) {
     return
@@ -526,6 +562,7 @@ function describe(error: unknown): string {
 
 /* --------------------------------------------------------------- results */
 
+/** Renders one converted cell value, styled by the JS type it came back as. */
 function cell(value: unknown): HTMLTableCellElement {
   if (value === null || value === undefined) {
     return el('td', { class: 'is-null', textContent: '∅' })
@@ -552,6 +589,7 @@ function cell(value: unknown): HTMLTableCellElement {
   return el('td', { class: 'is-raw', textContent: JSON.stringify(value) })
 }
 
+/** Renders the result rows, taking column order from the first row's keys. */
 function resultsTable(rows: SheetRow[]): HTMLElement {
   if (rows.length === 0) {
     return el('p', { class: 'empty', textContent: '조건에 맞는 행이 없습니다.' })
@@ -582,6 +620,7 @@ function resultsTable(rows: SheetRow[]): HTMLElement {
   return el('div', { class: 'table-scroll' }, [el('table', {}, [head, body])])
 }
 
+/** Renders whichever of the four output states applies: error, running, empty, or results. */
 function renderOutput(): void {
   const host = document.getElementById('output')
   const button = document.getElementById('run') as HTMLButtonElement | null
@@ -637,6 +676,7 @@ function renderOutput(): void {
 
 /* ------------------------------------------------------------------ shell */
 
+/** Rebuilds every panel and both output areas from the current state. */
 function render(): void {
   const builder = document.getElementById('builder')
 

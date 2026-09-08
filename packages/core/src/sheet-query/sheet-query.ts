@@ -16,21 +16,34 @@ import { buildQuery, buildUrl } from './sheet-query.utils.ts'
 /**
  * Chainable builder for read-only GViz queries against a Google Sheet.
  *
- * Prefer the {@link sheetQuery} factory over constructing this directly.
+ * Every method returns the same instance, so a builder is single-use and
+ * mutable: calling `.execute()` twice re-runs the query as it stands. Prefer
+ * the {@linkcode sheetQuery} factory over constructing this directly.
  *
- * @example
+ * @example Filter, sort, and page
  * ```ts
- * const rows = await sheetQuery(spreadsheetId, { sheet: 'people' })
+ * import { eq, sheetQuery } from 'sheet-query'
+ *
+ * const rows = await sheetQuery('1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', {
+ *   sheet: 'people',
+ * })
  *   .select('A', 'B')
  *   .where(eq('C', '서울'))
  *   .orderBy('B', 'desc')
  *   .limit(10)
- *   .execute();
+ *   .execute()
  * ```
  */
 export class SheetQuery {
   private readonly state: SheetQueryState
 
+  /**
+   * Starts a query against one spreadsheet.
+   *
+   * @param spreadsheetId The spreadsheet id from its URL.
+   * @param options Sheet target and header configuration.
+   * @throws {SheetQueryError} when `spreadsheetId` is empty.
+   */
   constructor(spreadsheetId: string, options: SheetQueryOptions = {}) {
     if (!spreadsheetId) {
       throw new SheetQueryError('spreadsheetId is required.')
@@ -48,64 +61,126 @@ export class SheetQuery {
     }
   }
 
-  /** Selects columns (by letter/id or aggregate expression). Empty means `SELECT *`. */
+  /**
+   * Selects columns by letter/id, or an aggregate expression such as
+   * `SUM(B)`. Selecting nothing (the default) reads every column.
+   *
+   * Calls accumulate rather than replace, so `.select('A').select('B')` is the
+   * same as `.select('A', 'B')`.
+   *
+   * @returns This builder, for chaining.
+   */
   select(...columns: string[]): this {
     this.state.select.push(...columns)
     return this
   }
 
-  /** Appends a WHERE condition. Multiple calls are combined with AND. */
+  /**
+   * Appends a WHERE condition built by a helper such as {@linkcode eq}.
+   * Multiple calls are combined with `AND`; use {@linkcode or} for alternatives.
+   *
+   * @returns This builder, for chaining.
+   *
+   * @example Two conditions, ANDed together
+   * ```ts
+   * import { eq, gt, sheetQuery } from 'sheet-query'
+   *
+   * const query = sheetQuery('1VwfZpdR...').where(eq('D', '서울')).where(gt('C', 30))
+   *
+   * query.toQuery() // SELECT * WHERE (D = '서울') AND (C > 30)
+   * ```
+   */
   where(condition: Condition): this {
     this.state.where.push(condition)
     return this
   }
 
-  /** Adds GROUP BY columns. */
+  /**
+   * Adds GROUP BY columns. GViz requires every selected column to be either
+   * grouped or aggregated.
+   *
+   * @returns This builder, for chaining.
+   */
   groupBy(...columns: string[]): this {
     this.state.groupBy.push(...columns)
     return this
   }
 
-  /** Adds an ORDER BY term. Multiple calls preserve order. */
+  /**
+   * Adds an ORDER BY term. Multiple calls sort by each column in the order the
+   * calls were made.
+   *
+   * @param column Column letter or id to sort by.
+   * @param direction Sort direction; defaults to ascending.
+   * @returns This builder, for chaining.
+   */
   orderBy(column: string, direction: SortDirection = 'asc'): this {
     this.state.orderBy.push({ column, direction })
     return this
   }
 
-  /** Sets the row limit. */
+  /**
+   * Sets the maximum number of rows to return, replacing any previous limit.
+   *
+   * @returns This builder, for chaining.
+   */
   limit(count: number): this {
     this.state.limit = count
     return this
   }
 
-  /** Sets the row offset. */
+  /**
+   * Skips `count` rows before returning results, replacing any previous offset.
+   *
+   * @returns This builder, for chaining.
+   */
   offset(count: number): this {
     this.state.offset = count
     return this
   }
 
-  /** Returns the GViz `tq` query string (without executing). */
+  /**
+   * Renders the accumulated state as a GViz `tq` query string, without sending
+   * a request. Useful for logging and for tests that assert on the query.
+   */
   toQuery(): string {
     return buildQuery(this.state)
   }
 
-  /** Returns the full GViz request URL (without executing). */
+  /**
+   * Renders the full GViz request URL — query, output format, and sheet target
+   * — without sending a request.
+   */
   toUrl(): string {
     return buildUrl(this.state)
   }
 
   /**
-   * Executes the query and returns the rows validated by `options.schema`.
+   * Executes the query and returns the rows parsed by `options.schema`.
    *
-   * @throws {SheetQueryError} on network failure, a GViz error, or validation.
+   * @throws {SheetQueryError} on network failure, a GViz error, or a row that
+   * fails validation.
+   *
+   * @example Validate rows with a Standard Schema
+   * ```ts
+   * import { sheetQuery } from 'sheet-query'
+   * import { z } from 'zod'
+   *
+   * const Person = z.object({ id: z.number(), name: z.string() })
+   * const people = await sheetQuery('1VwfZpdR...').execute({ schema: Person })
+   * ```
    */
   async execute<Schema extends StandardSchemaV1>(
     options: ExecuteOptions & { schema: Schema },
   ): Promise<InferOutput<Schema>[]>
   /**
-   * Executes the query and returns rows as plain objects keyed by column label.
+   * Executes the query and returns rows as plain objects keyed by column label,
+   * with cell values coerced to native JS types.
    *
-   * @typeParam T - Expected row shape; defaults to {@link SheetRow}.
+   * Without a schema the shape is unchecked at runtime, so `T` is a claim about
+   * the sheet rather than a guarantee.
+   *
+   * @typeParam T - Expected row shape; defaults to {@linkcode SheetRow}.
    * @throws {SheetQueryError} on network failure or a GViz error response.
    */
   async execute<T = SheetRow>(options?: ExecuteOptions): Promise<T[]>
@@ -151,10 +226,19 @@ export class SheetQuery {
 }
 
 /**
- * Creates a {@link SheetQuery} builder for the given spreadsheet.
+ * Creates a {@linkcode SheetQuery} builder for the given spreadsheet.
  *
- * @param spreadsheetId - The spreadsheet id from its URL.
- * @param options - Sheet target and header configuration.
+ * @param spreadsheetId The spreadsheet id from its URL — the segment between
+ * `/d/` and `/edit`.
+ * @param options Sheet target and header configuration.
+ * @throws {SheetQueryError} when `spreadsheetId` is empty.
+ *
+ * @example Query a named tab
+ * ```ts
+ * import { sheetQuery } from 'sheet-query'
+ *
+ * const rows = await sheetQuery('1VwfZpdR...', { sheet: '발견물' }).limit(5).execute()
+ * ```
  */
 export function sheetQuery(spreadsheetId: string, options?: SheetQueryOptions): SheetQuery {
   return new SheetQuery(spreadsheetId, options)
