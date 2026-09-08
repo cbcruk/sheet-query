@@ -28,9 +28,15 @@ export interface SheetTable {
   sheet: string
   /** Header names in column order, e.g. `['id', 'name', 'age']`. */
   columns: string[]
-  /** Identity column name. Defaults to `'id'`; must exist in {@link columns}. */
+  /**
+   * Identity column name. Defaults to `'id'`; must exist in
+   * {@linkcode columns}.
+   *
+   * Values must be unique — updates and deletes act on the first row that
+   * matches — and stable, since they are the only durable handle on a row.
+   */
   idColumn?: string
-  /** Number of header rows. Defaults to `1`. */
+  /** Number of header rows above the data. Defaults to `1`. */
   headerRows?: number
   /**
    * Numeric tab id (`gid`). When omitted, `deleteRowById` resolves it via a
@@ -50,11 +56,14 @@ export interface SheetTable {
   verifyHeaders?: boolean
 }
 
-/** A value accepted when writing a cell. */
+/** A value accepted when writing a cell. `null` and `undefined` clear it. */
 export type CellInput = string | number | boolean | Date | null | undefined
 
-/** A value serialized for the Sheets API `values` payload. */
+/**
+ * A value serialized for the Sheets API `values` payload, as produced by
+ * {@linkcode serializeWriteValue}.
+ */
 export type WriteValue = string | number | boolean
 
-/** A record keyed by column header. */
+/** A row keyed by column header, as passed to {@linkcode appendRow}. */
 export type WriteRecord = Record<string, CellInput>

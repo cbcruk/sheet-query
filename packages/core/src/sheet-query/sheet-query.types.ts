@@ -4,17 +4,19 @@ import type { StandardSchemaV1 } from '../schema/standard-schema.types.ts'
 /** Sort direction for an ORDER BY clause. */
 export type SortDirection = 'asc' | 'desc'
 
-/** A single ORDER BY term. */
+/** A single ORDER BY term, as accumulated by {@linkcode SheetQuery.orderBy}. */
 export interface OrderByTerm {
+  /** Column letter or id to sort by. */
   column: string
+  /** Direction to sort that column in. */
   direction: SortDirection
 }
 
 /** Options accepted when constructing a query. */
 export interface SheetQueryOptions {
   /**
-   * Sheet (tab) name to query. Mutually informative with {@link gid}; provide
-   * one. When omitted, GViz targets the first sheet.
+   * Sheet (tab) name to query. Mutually informative with {@linkcode gid};
+   * provide one. When omitted, GViz targets the first sheet.
    */
   sheet?: string
   /** Sheet tab `gid`. Useful when the tab name is unstable. */
@@ -22,25 +24,43 @@ export interface SheetQueryOptions {
   /**
    * Number of header rows. Defaults to `1`. Set to `0` for headerless sheets
    * (columns are then keyed by their `A, B, ...` ids).
+   *
+   * Always set this explicitly on sheets whose first rows are irregular: left
+   * to guess, GViz can mistake data for headers and return empty labels.
    */
   headers?: number
 }
 
-/** Internal, fully-resolved query state accumulated by the builder. */
+/**
+ * Internal, fully-resolved query state accumulated by the builder.
+ *
+ * Exported for tooling and tests that render a query without a builder; the
+ * builder owns its own instance, so mutating one directly is unsupported.
+ */
 export interface SheetQueryState {
+  /** Spreadsheet id from the sheet URL. */
   spreadsheetId: string
+  /** Tab name to query, when targeting by name. */
   sheet?: string
+  /** Tab `gid`, when targeting by id. */
   gid?: string | number
+  /** Number of header rows, defaulted at construction time. */
   headers: number
+  /** Selected columns; empty means `SELECT *`. */
   select: string[]
+  /** Conditions to combine with `AND`. */
   where: Condition[]
+  /** GROUP BY columns. */
   groupBy: string[]
+  /** ORDER BY terms, applied in array order. */
   orderBy: OrderByTerm[]
+  /** Row limit; omitted means no `LIMIT` clause. */
   limit?: number
+  /** Row offset; omitted means no `OFFSET` clause. */
   offset?: number
 }
 
-/** Options for {@link SheetQuery.execute}. */
+/** Options for {@linkcode SheetQuery.execute}. */
 export interface ExecuteOptions {
   /** Custom fetch implementation (defaults to global `fetch`). */
   fetch?: typeof fetch
@@ -50,7 +70,8 @@ export interface ExecuteOptions {
   signal?: AbortSignal
   /**
    * Standard Schema to validate each returned row against. When provided,
-   * `execute` returns the schema's parsed output type instead of {@link SheetRow}.
+   * `execute` returns the schema's parsed output type instead of
+   * {@linkcode SheetRow}.
    */
   schema?: StandardSchemaV1
   /**

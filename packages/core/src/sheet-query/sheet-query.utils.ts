@@ -1,6 +1,7 @@
 import { and } from './conditions.ts'
 import type { SheetQueryState } from './sheet-query.types.ts'
 
+/** Root of the GViz endpoint; the spreadsheet id and `/gviz/tq` complete it. */
 const GVIZ_BASE = 'https://docs.google.com/spreadsheets/d'
 
 /**

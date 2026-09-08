@@ -28,10 +28,17 @@ function cellMatchesId(cell: unknown, id: CellInput): boolean {
 
 /**
  * Finds the 1-based sheet row number of the row whose identity column equals
- * `id`, or `null` when no row matches.
+ * `id`.
  *
- * Row index is mutable (insert/delete shifts it), so this must run fresh at
- * write time rather than being cached — the central tenet of Layer 2 identity.
+ * Row numbers are mutable — inserting or deleting a row shifts every row below
+ * it — so this must run fresh at write time and its result must never be cached
+ * across mutations. Values are compared as strings, so the number `42` matches a
+ * cell holding `'42'`. When several rows share an id, the first one wins.
+ *
+ * @param ctx Spreadsheet id and access token for the Sheets API call.
+ * @param table The tab's column layout and identity column.
+ * @param id Identity value to look for.
+ * @returns The 1-based row number, or `null` when no row matches.
  */
 export async function findRowNumberById(
   ctx: SheetsApiContext,

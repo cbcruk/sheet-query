@@ -18,10 +18,12 @@
 import { and, eq, gt, isNotNull, like, sheetQuery } from 'sheet-query'
 import type { StandardSchemaV1 } from 'sheet-query'
 
+/** The demo sheet, overridable so the same script runs against your own copy. */
 const SPREADSHEET_ID = process.env.SHEET_ID ?? '1-SIyn5k0n19cIdfbMWhpBaQkPukBEl7Dit0xbOBxUII'
 
 /** Column letters of the 발견물 tab: 지역, 발견물, 도서관 힌트, 도시, 위도, 경도, 증거품, 조건. */
 const DISCOVERY_COLUMNS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+/** Header labels of the 발견물 tab, in column order, for `verifyHeaders`. */
 const DISCOVERY_HEADERS = [
   '지역',
   '발견물',
@@ -33,10 +35,12 @@ const DISCOVERY_HEADERS = [
   '조건 및 기타',
 ]
 
+/** Prints a titled divider so each numbered scenario is easy to find. */
 function section(title: string): void {
   console.log(`\n${'─'.repeat(64)}\n${title}\n`)
 }
 
+/** Prints rows as a table — the whole point being that they are plain objects. */
 function show(rows: unknown[]): void {
   console.table(rows)
 }
@@ -110,10 +114,20 @@ show(
 //    needs no special API — 도서's 게제 힌트 points at a 발견물 name.
 section('6. 도서 힌트 → 발견물 위치 (탭 간 조인)')
 
+/**
+ * Shape claimed for the 발견물 rows in the join below.
+ *
+ * `execute<T>()` does not validate, so this is an assertion about the sheet —
+ * the nullable fields are the columns that really do have blank cells.
+ */
 interface Discovery {
+  /** Name of the discovery; also the key 도서 hints point at. */
   발견물: string
+  /** Nearest city, blank for some entries. */
   도시: string | null
+  /** Latitude, blank where the sheet records none. */
   위도: number | null
+  /** Longitude, blank where the sheet records none. */
   경도: number | null
 }
 
@@ -165,12 +179,20 @@ try {
 //    and shows the interface `execute({ schema })` actually consumes.
 section('8. Standard Schema 검증 (의존성 없이)')
 
+/**
+ * Shape the schema below guarantees. Unlike {@link Discovery}, nothing here is
+ * nullable — validation is what makes that safe to claim.
+ */
 interface Coordinate {
+  /** Name of the discovery, asserted non-empty. */
   발견물: string
+  /** Latitude, asserted to be a number. */
   위도: number
+  /** Longitude, asserted to be a number. */
   경도: number
 }
 
+/** A hand-rolled Standard Schema, so the example needs no schema library. */
 const coordinateSchema: StandardSchemaV1<unknown, Coordinate> = {
   '~standard': {
     version: 1,

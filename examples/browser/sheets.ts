@@ -12,21 +12,32 @@ export interface ColumnMeta {
   id: string
   /** Header label, which is also the object key rows come back with. */
   label: string
+  /** How GViz types the column, which decides how a filter value is serialized. */
   type: 'string' | 'number'
 }
 
 /** One tab (sheet) of the demo spreadsheet. */
 export interface TabMeta {
+  /** Tab name, passed as the `sheet` option. */
   name: string
+  /** Tab `gid`, shown in the UI so the sheet can be opened at that tab. */
   gid: string
+  /** One-line summary shown on the tab button. */
   description: string
+  /** Columns in sheet order. */
   columns: ColumnMeta[]
 }
 
+/** The public, read-only spreadsheet this playground queries. */
 export const SPREADSHEET_ID = '1-SIyn5k0n19cIdfbMWhpBaQkPukBEl7Dit0xbOBxUII'
 
+/** Human-facing link to the same sheet, so the data can be checked by eye. */
 export const SPREADSHEET_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}`
 
+/**
+ * The three tabs, transcribed from the sheet rather than fetched, so the UI can
+ * render its column pickers before the first request.
+ */
 export const TABS: TabMeta[] = [
   {
     name: '발견물',

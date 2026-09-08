@@ -14,8 +14,11 @@
  */
 import { sheetQuery } from 'sheet-query'
 
+/** Sheet to read, from the first argument or `SHEET_ID`. Required. */
 const spreadsheetId = process.argv[2] ?? process.env.SHEET_ID
+/** Tab name, from the second argument or `SHEET_NAME`. Defaults to the first tab. */
 const sheet = process.argv[3] ?? process.env.SHEET_NAME
+/** OAuth token for a non-public sheet; omitted for public ones. */
 const accessToken = process.env.ACCESS_TOKEN
 
 if (!spreadsheetId) {

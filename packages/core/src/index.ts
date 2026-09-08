@@ -1,3 +1,39 @@
+/**
+ * Treat a Google Sheet as a data store: SQL-like reads through the GViz `tq`
+ * endpoint, type-safe writes through the Sheets API v4, and row identity that
+ * survives inserts and deletes.
+ *
+ * Reads need no server — {@linkcode sheetQuery} builds a query and fetches it
+ * straight from the browser or Node. Writes go through {@linkcode appendRow},
+ * {@linkcode updateRowById} and {@linkcode deleteRowById}, which take an access
+ * token you obtain elsewhere; the core never handles credentials itself.
+ *
+ * @example Read rows from a public sheet
+ * ```ts
+ * import { eq, sheetQuery } from 'sheet-query'
+ *
+ * const rows = await sheetQuery('1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', {
+ *   sheet: 'people',
+ * })
+ *   .where(eq('D', '서울'))
+ *   .orderBy('C', 'desc')
+ *   .execute()
+ * ```
+ *
+ * @example Update a row found by its id
+ * ```ts
+ * import { updateRowById } from 'sheet-query'
+ *
+ * await updateRowById(
+ *   { spreadsheetId: '1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', accessToken: 'ya29...' },
+ *   { sheet: 'people', columns: ['id', 'name', 'age', 'city'] },
+ *   42,
+ *   { city: '부산' },
+ * )
+ * ```
+ *
+ * @module
+ */
 export { sheetQuery, SheetQuery } from './sheet-query/sheet-query.ts'
 export { SheetQueryError } from './sheet-query/sheet-query.error.ts'
 export {

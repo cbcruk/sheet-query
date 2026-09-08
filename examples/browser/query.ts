@@ -34,32 +34,54 @@ export const OPERATORS = {
   isNotNull: { label: 'IS NOT NULL', arity: 0 },
 } as const
 
+/** Key of one {@linkcode OPERATORS} entry. */
 export type Operator = keyof typeof OPERATORS
 
 /** One row of the WHERE builder. */
 export interface ConditionInput {
+  /** Column id (`A`, `B`, ...) the condition applies to. */
   column: string
+  /** Which comparison to build. */
   operator: Operator
+  /** Raw text from the input, coerced to the column's type at build time. */
   value: string
 }
 
 /** Everything the UI controls, and the only source the query is derived from. */
 export interface State {
+  /** Name of the tab being queried. */
   tab: string
+  /** Selected column ids; empty means `SELECT *`. */
   select: string[]
+  /** Comma-separated aggregate expressions, e.g. `count(B), sum(E)`. */
   aggregate: string
+  /** How multiple conditions combine. */
   combinator: 'and' | 'or'
+  /** WHERE rows, incomplete ones included — those are skipped when building. */
   conditions: ConditionInput[]
+  /** Column ids to GROUP BY. */
   groupBy: string[]
+  /** Column id or aggregate expression to sort by; empty means no ORDER BY. */
   orderColumn: string
+  /** Direction for {@linkcode orderColumn}. */
   orderDirection: 'asc' | 'desc'
+  /** LIMIT as typed; empty means no limit. */
   limit: string
+  /** OFFSET as typed; empty means no offset. */
   offset: string
+  /** Pass `verifyHeaders` to `execute()`. */
   verifyHeaders: boolean
+  /** Corrupt the expected headers on purpose, to demonstrate drift detection. */
   breakHeaders: boolean
+  /** Validate each row against {@linkcode coordinateSchema}. */
   useSchema: boolean
 }
 
+/**
+ * The state a tab opens with: every column selected, no filters, 20 rows.
+ *
+ * @param tabName Tab to build the state for; must exist in `TABS`.
+ */
 export function defaultState(tabName = '발견물'): State {
   const tab = tabByName(tabName)
 
@@ -242,16 +264,21 @@ export const coordinateSchema: StandardSchemaV1<unknown, Record<string, unknown>
 
 /** One-click scenarios, mirroring the sections of `examples/discoveries.ts`. */
 export interface Preset {
+  /** Button label. */
   title: string
+  /** Which feature the preset demonstrates, shown under the title. */
   note: string
+  /** The full state the button applies. */
   state: State
 }
 
+/** Builds a preset by patching the target tab's default state. */
 function preset(title: string, note: string, patch: Partial<State>): Preset {
   const base = defaultState(patch.tab ?? '발견물')
   return { title, note, state: { ...base, ...patch } }
 }
 
+/** The scenarios offered as one-click buttons, in display order. */
 export const PRESETS: Preset[] = [
   preset('신대륙의 발견물', 'WHERE + ORDER BY + LIMIT', {
     conditions: [{ column: 'A', operator: 'eq', value: '신대륙' }],
