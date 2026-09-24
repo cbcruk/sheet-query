@@ -10,9 +10,16 @@ watch the generated GViz string update as you type, and run it against a real sh
 > Schema validation and header drift detection. Still open: the auth-strategy abstraction,
 > quota handling and request batching, and the server proxy that holds the Service Account
 > key. The TanStack DB adapter is deliberately deferred until the core settles — see
-> [`CLAUDE.md`](./CLAUDE.md) for the full roadmap.
->
-> Not published to npm yet (`0.0.0`).
+> [`CLAUDE.md`](https://github.com/cbcruk/sheet-query/blob/main/CLAUDE.md) for the full roadmap.
+
+## Install
+
+```sh
+pnpm add sheet-query
+```
+
+Zero runtime dependencies, ESM-only, and it runs anywhere `fetch` does — browsers, Node,
+and edge runtimes such as Cloudflare Workers.
 
 ## Reading
 

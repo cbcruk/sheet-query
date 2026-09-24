@@ -1,18 +1,31 @@
 {
   "name": "sheet-query",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Treat Google Sheets like a data store: SQL-like reads via GViz, type-safe writes, schema validation.",
   "keywords": [
     "google-sheets",
     "gviz",
     "query",
-    "sql"
+    "spreadsheet",
+    "sql",
+    "standard-schema"
   ],
+  "homepage": "https://github.com/cbcruk/sheet-query#readme",
+  "bugs": {
+    "url": "https://github.com/cbcruk/sheet-query/issues"
+  },
   "license": "MIT",
+  "author": "Eunsoo Lee",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbcruk/sheet-query.git",
+    "directory": "packages/core"
+  },
   "files": [
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
     "./package.json": "./package.json"
@@ -32,7 +45,7 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
-    "prepublishOnly": "vp run build"
+    "prepack": "cp ../../README.md ../../LICENSE . && vp run build"
   },
   "devDependencies": {
     "@types/node": "catalog:",
