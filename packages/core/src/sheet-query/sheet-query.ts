@@ -1,6 +1,7 @@
 import { assertHeaders, tableHeaderLabels } from '../headers/headers.ts'
 import type { InferOutput, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
 import { validateRows } from '../schema/validate.ts'
+import { listSheetTabs } from '../sheet-write/sheets-client.ts'
 import type { Condition } from './conditions.ts'
 import { assertGVizOk, parseGVizResponse, tableToObjects } from './gviz.ts'
 import type { SheetRow } from './gviz.types.ts'
@@ -11,7 +12,7 @@ import type {
   SheetQueryState,
   SortDirection,
 } from './sheet-query.types.ts'
-import { buildQuery, buildUrl } from './sheet-query.utils.ts'
+import { assertSheetTarget, buildQuery, buildUrl } from './sheet-query.utils.ts'
 
 /**
  * Chainable builder for read-only GViz queries against a Google Sheet.
@@ -158,8 +159,8 @@ export class SheetQuery {
   /**
    * Executes the query and returns the rows parsed by `options.schema`.
    *
-   * @throws {SheetQueryError} on network failure, a GViz error, or a row that
-   * fails validation.
+   * @throws {SheetQueryError} on network failure, a GViz error, a missing tab
+   * under `verifySheet`, or a row that fails validation.
    *
    * @example Validate rows with a Standard Schema
    * ```ts
@@ -181,7 +182,8 @@ export class SheetQuery {
    * the sheet rather than a guarantee.
    *
    * @typeParam T - Expected row shape; defaults to {@linkcode SheetRow}.
-   * @throws {SheetQueryError} on network failure or a GViz error response.
+   * @throws {SheetQueryError} on network failure, a GViz error response, or a
+   * missing tab under `verifySheet`.
    */
   async execute<T = SheetRow>(options?: ExecuteOptions): Promise<T[]>
   async execute(options: ExecuteOptions = {}): Promise<unknown[]> {
@@ -189,6 +191,10 @@ export class SheetQuery {
 
     if (typeof fetchImpl !== 'function') {
       throw new SheetQueryError('No fetch implementation available; pass options.fetch.')
+    }
+
+    if (options.verifySheet) {
+      await this.verifySheet(options)
     }
 
     const headers: Record<string, string> = {}
@@ -222,6 +228,33 @@ export class SheetQuery {
 
     const rows = tableToObjects(parsed.table)
     return options.schema ? validateRows(options.schema, rows) : rows
+  }
+
+  /**
+   * Checks the query's tab target against the spreadsheet's tab list before
+   * GViz gets a chance to fall back to the first tab.
+   *
+   * @throws {SheetQueryError} when no `accessToken` is given, the metadata
+   * request fails, or the target tab does not exist.
+   */
+  private async verifySheet(options: ExecuteOptions): Promise<void> {
+    if (this.state.sheet === undefined && this.state.gid === undefined) {
+      return
+    }
+
+    if (!options.accessToken) {
+      throw new SheetQueryError(
+        'verifySheet requires an accessToken: tabs are listed through the Sheets API.',
+      )
+    }
+
+    const tabs = await listSheetTabs({
+      spreadsheetId: this.state.spreadsheetId,
+      accessToken: options.accessToken,
+      fetch: options.fetch,
+      signal: options.signal,
+    })
+    assertSheetTarget(this.state, tabs)
   }
 }
 

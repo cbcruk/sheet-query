@@ -67,3 +67,11 @@ export type WriteValue = string | number | boolean
 
 /** A row keyed by column header, as passed to {@linkcode appendRow}. */
 export type WriteRecord = Record<string, CellInput>
+
+/** A tab in a spreadsheet, as listed by the Sheets API metadata endpoint. */
+export interface SheetTab {
+  /** Numeric tab id — the `gid` in the sheet URL. */
+  sheetId: number
+  /** Tab name as shown in the Sheets UI. */
+  title: string
+}

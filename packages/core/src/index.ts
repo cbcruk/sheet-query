@@ -60,6 +60,7 @@ export {
   updateValues,
   batchUpdate,
   resolveSheetId,
+  listSheetTabs,
 } from './sheet-write/sheets-client.ts'
 export {
   columnLetter,
@@ -97,6 +98,7 @@ export type {
 export type {
   CellInput,
   SheetsApiContext,
+  SheetTab,
   SheetTable,
   WriteRecord,
   WriteValue,

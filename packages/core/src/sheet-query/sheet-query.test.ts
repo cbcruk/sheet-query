@@ -183,3 +183,72 @@ test('execute({ verifyHeaders }) throws on header drift', async () => {
     }),
   ).rejects.toThrow(/Header drift detected/)
 })
+
+const TABS = { sheets: [{ properties: { sheetId: 0, title: 'people' } }] }
+
+function mockFetchWithTabs(calls: string[] = []): typeof fetch {
+  const gviz = mockFetchFor(PEOPLE_PAYLOAD)
+  return (async (input: string, init?: RequestInit) => {
+    calls.push(input)
+    if (input.startsWith('https://sheets.googleapis.com/')) {
+      return new Response(JSON.stringify(TABS), { status: 200 })
+    }
+    return gviz(input, init)
+  }) as unknown as typeof fetch
+}
+
+test('execute({ verifySheet }) passes for an existing tab name or gid', async () => {
+  const byName = await sheetQuery('sid', { sheet: 'people' }).execute({
+    fetch: mockFetchWithTabs(),
+    accessToken: 'token',
+    verifySheet: true,
+  })
+  const byGid = await sheetQuery('sid', { gid: '0' }).execute({
+    fetch: mockFetchWithTabs(),
+    accessToken: 'token',
+    verifySheet: true,
+  })
+  expect(byName).toHaveLength(2)
+  expect(byGid).toHaveLength(2)
+})
+
+test('execute({ verifySheet }) throws before querying GViz when the tab is missing', async () => {
+  const calls: string[] = []
+  await expect(
+    sheetQuery('sid', { sheet: 'history' }).execute({
+      fetch: mockFetchWithTabs(calls),
+      accessToken: 'token',
+      verifySheet: true,
+    }),
+  ).rejects.toThrow('Sheet tab not found: "history". Available: "people" (gid 0).')
+  expect(calls).toHaveLength(1)
+})
+
+test('execute({ verifySheet }) throws when the gid is missing', async () => {
+  await expect(
+    sheetQuery('sid', { gid: 999999999 }).execute({
+      fetch: mockFetchWithTabs(),
+      accessToken: 'token',
+      verifySheet: true,
+    }),
+  ).rejects.toThrow(/Sheet tab not found: gid 999999999/)
+})
+
+test('execute({ verifySheet }) requires an accessToken', async () => {
+  await expect(
+    sheetQuery('sid', { sheet: 'people' }).execute({
+      fetch: mockFetchWithTabs(),
+      verifySheet: true,
+    }),
+  ).rejects.toThrow(/verifySheet requires an accessToken/)
+})
+
+test('execute({ verifySheet }) skips the check when the query has no tab target', async () => {
+  const calls: string[] = []
+  const rows = await sheetQuery('sid').execute({
+    fetch: mockFetchWithTabs(calls),
+    verifySheet: true,
+  })
+  expect(rows).toHaveLength(2)
+  expect(calls).toHaveLength(1)
+})
