@@ -65,12 +65,17 @@ export function buildUrl(state: SheetQueryState): string {
  * so this check is the only way to tell a typo from real data. A query with no
  * target passes: the first tab is then what the caller asked for.
  *
+ * Names are compared the way GViz resolves them: ignoring case (`hr` reads the
+ * `HR` tab) but not surrounding whitespace (`HR ` falls back to the first tab).
+ *
  * @throws {SheetQueryError} naming the missing target and the tabs that exist.
  */
 export function assertSheetTarget(state: SheetQueryState, tabs: SheetTab[]): void {
   const available = tabs.map((tab) => `"${tab.title}" (gid ${tab.sheetId})`).join(', ')
 
-  if (state.sheet !== undefined && !tabs.some((tab) => tab.title === state.sheet)) {
+  const sheet = state.sheet?.toLowerCase()
+
+  if (sheet !== undefined && !tabs.some((tab) => tab.title.toLowerCase() === sheet)) {
     throw new SheetQueryError(`Sheet tab not found: "${state.sheet}". Available: ${available}.`)
   }
 
