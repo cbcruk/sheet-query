@@ -12,7 +12,7 @@
     "discoveries": "node discoveries.ts"
   },
   "dependencies": {
-    "sheet-query": "workspace:*"
+    "@cbcruk/sheet-query": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

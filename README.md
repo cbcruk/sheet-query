@@ -15,7 +15,7 @@ watch the generated GViz string update as you type, and run it against a real sh
 ## Install
 
 ```sh
-pnpm add sheet-query
+pnpm add @cbcruk/sheet-query
 ```
 
 Zero runtime dependencies, ESM-only, and it runs anywhere `fetch` does â€” browsers, Node,
@@ -28,7 +28,7 @@ authentication for publicly readable sheets. The builder is chainable and lazy â
 requested until `execute()`.
 
 ```ts
-import { sheetQuery, and, eq, gt } from 'sheet-query'
+import { sheetQuery, and, eq, gt } from '@cbcruk/sheet-query'
 
 const rows = await sheetQuery(spreadsheetId, { sheet: 'people' })
   .select('A', 'B', 'C')
@@ -84,7 +84,7 @@ Row indices shift when rows are inserted or deleted, so they are never trusted. 
 mutation looks the row up by its `id` column first.
 
 ```ts
-import { appendRow, updateRowById, deleteRowById } from 'sheet-query'
+import { appendRow, updateRowById, deleteRowById } from '@cbcruk/sheet-query'
 
 const ctx = { spreadsheetId, accessToken }
 const table = {
@@ -139,7 +139,7 @@ const table = { sheet: 'people', columns: ['id', 'name', 'age'], verifyHeaders: 
 await appendRow(ctx, table, { id: 9, name: 'X', age: 20 })
 
 // Or check on your own schedule.
-import { verifyTableHeaders } from 'sheet-query'
+import { verifyTableHeaders } from '@cbcruk/sheet-query'
 await verifyTableHeaders(ctx, table)
 ```
 

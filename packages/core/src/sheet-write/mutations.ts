@@ -40,7 +40,7 @@ async function guardHeaders(ctx: SheetsApiContext, table: SheetTable): Promise<v
  *
  * @example Append a person
  * ```ts
- * import { appendRow } from 'sheet-query'
+ * import { appendRow } from '@cbcruk/sheet-query'
  *
  * await appendRow(
  *   { spreadsheetId: '1VwfZpdR...', accessToken: 'ya29...' },
@@ -88,7 +88,7 @@ export async function appendRow(
  *
  * @example Move someone to another city
  * ```ts
- * import { updateRowById } from 'sheet-query'
+ * import { updateRowById } from '@cbcruk/sheet-query'
  *
  * await updateRowById(
  *   { spreadsheetId: '1VwfZpdR...', accessToken: 'ya29...' },

@@ -7,8 +7,8 @@
  * read path the architecture assumes. It works because GViz echoes the request
  * `Origin` for publicly-readable sheets.
  */
-import { SheetQueryError } from 'sheet-query'
-import type { SheetRow } from 'sheet-query'
+import { SheetQueryError } from '@cbcruk/sheet-query'
+import type { SheetRow } from '@cbcruk/sheet-query'
 import { SPREADSHEET_URL, TABS, tabByName } from './sheets.ts'
 import {
   OPERATORS,

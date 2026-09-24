@@ -15,8 +15,8 @@
  * Read-only: the sheet has no `id` column and is public, so writes are out of
  * scope here — see the README for `appendRow` / `updateRowById`.
  */
-import { and, eq, gt, isNotNull, like, sheetQuery } from 'sheet-query'
-import type { StandardSchemaV1 } from 'sheet-query'
+import { and, eq, gt, isNotNull, like, sheetQuery } from '@cbcruk/sheet-query'
+import type { StandardSchemaV1 } from '@cbcruk/sheet-query'
 
 /** The demo sheet, overridable so the same script runs against your own copy. */
 const SPREADSHEET_ID = process.env.SHEET_ID ?? '1-SIyn5k0n19cIdfbMWhpBaQkPukBEl7Dit0xbOBxUII'

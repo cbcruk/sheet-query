@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vp run -r build",
-    "dev": "vp run -F sheet-query dev",
+    "dev": "vp run -F @cbcruk/sheet-query dev",
     "test": "vp test",
     "check": "vp check"
   },

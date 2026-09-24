@@ -29,7 +29,7 @@ Workers proxy는 wrangler를 / 어댑터는 BETA인 TanStack DB를 끌고 오기
 
 ```
 packages/
-  core/          npm: sheet-query              Layer 0~2. 현재 유일한 publish 대상
+  core/          npm: @cbcruk/sheet-query      Layer 0~2. 현재 유일한 publish 대상
   worker/        npm: @sheet-query/worker      Layer 1 서버 proxy (Cloudflare Workers) — 다음
   tanstack-db/   npm: @sheet-query/tanstack-db Layer 3 — Phase 3까지 보류
 examples/        private, workspace:* 로 코어 소비

@@ -8,7 +8,7 @@
  *
  * @example Narrow a caught error
  * ```ts
- * import { SheetQueryError, sheetQuery } from 'sheet-query'
+ * import { SheetQueryError, sheetQuery } from '@cbcruk/sheet-query'
  *
  * try {
  *   await sheetQuery('1VwfZpdR...').execute()

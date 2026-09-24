@@ -47,7 +47,7 @@ function formatIssues(issues: ReadonlyArray<StandardSchemaIssue>): string {
  *
  * @example Validate one row before writing it
  * ```ts
- * import { validateValue } from 'sheet-query'
+ * import { validateValue } from '@cbcruk/sheet-query'
  * import { z } from 'zod'
  *
  * const Person = z.object({ id: z.number(), name: z.string() })

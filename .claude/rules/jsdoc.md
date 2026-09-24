@@ -114,7 +114,7 @@ supports them before use:
 ## Applying these rules in sheet-query
 
 - The publishable package is `packages/core`. Its entry point is
-  `packages/core/src/index.ts`, and examples import from `sheet-query` — the
+  `packages/core/src/index.ts`, and examples import from `@cbcruk/sheet-query` — the
   same specifier `examples/` uses — never from a relative path.
 - `src/index.ts` carries the package's `@module` comment. The package exposes a
   single entry, so no other file needs one; a file-overview comment there is

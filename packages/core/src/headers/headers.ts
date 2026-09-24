@@ -15,7 +15,7 @@ import type { HeaderCheck, HeaderMismatch } from './headers.types.ts'
  *
  * @example Report drift without throwing
  * ```ts
- * import { compareHeaders } from 'sheet-query'
+ * import { compareHeaders } from '@cbcruk/sheet-query'
  *
  * const check = compareHeaders(['id', 'name'], ['id', 'full name'])
  *

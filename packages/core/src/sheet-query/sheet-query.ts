@@ -22,7 +22,7 @@ import { buildQuery, buildUrl } from './sheet-query.utils.ts'
  *
  * @example Filter, sort, and page
  * ```ts
- * import { eq, sheetQuery } from 'sheet-query'
+ * import { eq, sheetQuery } from '@cbcruk/sheet-query'
  *
  * const rows = await sheetQuery('1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', {
  *   sheet: 'people',
@@ -83,7 +83,7 @@ export class SheetQuery {
    *
    * @example Two conditions, ANDed together
    * ```ts
-   * import { eq, gt, sheetQuery } from 'sheet-query'
+   * import { eq, gt, sheetQuery } from '@cbcruk/sheet-query'
    *
    * const query = sheetQuery('1VwfZpdR...').where(eq('D', '서울')).where(gt('C', 30))
    *
@@ -163,7 +163,7 @@ export class SheetQuery {
    *
    * @example Validate rows with a Standard Schema
    * ```ts
-   * import { sheetQuery } from 'sheet-query'
+   * import { sheetQuery } from '@cbcruk/sheet-query'
    * import { z } from 'zod'
    *
    * const Person = z.object({ id: z.number(), name: z.string() })
@@ -235,7 +235,7 @@ export class SheetQuery {
  *
  * @example Query a named tab
  * ```ts
- * import { sheetQuery } from 'sheet-query'
+ * import { sheetQuery } from '@cbcruk/sheet-query'
  *
  * const rows = await sheetQuery('1VwfZpdR...', { sheet: '발견물' }).limit(5).execute()
  * ```

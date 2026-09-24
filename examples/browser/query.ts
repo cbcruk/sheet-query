@@ -16,8 +16,8 @@ import {
   or,
   sheetQuery,
   serializeValue,
-} from 'sheet-query'
-import type { ColumnValue, Condition, SheetQuery, StandardSchemaV1 } from 'sheet-query'
+} from '@cbcruk/sheet-query'
+import type { ColumnValue, Condition, SheetQuery, StandardSchemaV1 } from '@cbcruk/sheet-query'
 import { SPREADSHEET_ID, columnById, tabByName } from './sheets.ts'
 import type { TabMeta } from './sheets.ts'
 

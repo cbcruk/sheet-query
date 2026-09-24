@@ -10,7 +10,7 @@
  *
  * @example Read rows from a public sheet
  * ```ts
- * import { eq, sheetQuery } from 'sheet-query'
+ * import { eq, sheetQuery } from '@cbcruk/sheet-query'
  *
  * const rows = await sheetQuery('1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', {
  *   sheet: 'people',
@@ -22,7 +22,7 @@
  *
  * @example Update a row found by its id
  * ```ts
- * import { updateRowById } from 'sheet-query'
+ * import { updateRowById } from '@cbcruk/sheet-query'
  *
  * await updateRowById(
  *   { spreadsheetId: '1VwfZpdR_oeARGvKp8GHX4Sb3haINNqpbqBj7zEa6m7Y', accessToken: 'ya29...' },

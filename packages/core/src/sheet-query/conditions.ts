@@ -52,7 +52,7 @@ function formatDatetime(date: Date): string {
  *
  * @example Hand-build a condition GViz supports but sheet-query does not
  * ```ts
- * import { serializeValue } from 'sheet-query'
+ * import { serializeValue } from '@cbcruk/sheet-query'
  *
  * const condition = { expr: `B IN (${['서울', '부산'].map(serializeValue).join(', ')})` }
  * ```
@@ -88,7 +88,7 @@ function comparison(column: string, operator: string, value: ColumnValue): Condi
  *
  * @example Match a Korean string value
  * ```ts
- * import { eq } from 'sheet-query'
+ * import { eq } from '@cbcruk/sheet-query'
  *
  * eq('D', '서울').expr // D = '서울'
  * ```
@@ -159,7 +159,7 @@ export function and(...conditions: Condition[]): Condition {
  *
  * @example Either city, and over 30
  * ```ts
- * import { and, eq, gt, or } from 'sheet-query'
+ * import { and, eq, gt, or } from '@cbcruk/sheet-query'
  *
  * and(or(eq('D', '서울'), eq('D', '부산')), gt('C', 30))
  * ```

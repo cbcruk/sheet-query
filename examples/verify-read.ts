@@ -12,7 +12,7 @@
  * The sheet must be readable by GViz — either public ("anyone with the link")
  * or accessed with an OAuth token (set ACCESS_TOKEN to pass one).
  */
-import { sheetQuery } from 'sheet-query'
+import { sheetQuery } from '@cbcruk/sheet-query'
 
 /** Sheet to read, from the first argument or `SHEET_ID`. Required. */
 const spreadsheetId = process.argv[2] ?? process.env.SHEET_ID

@@ -22,7 +22,7 @@ const GVIZ_DATE = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/
  *
  * @example Parse a response fetched by hand
  * ```ts
- * import { parseGVizResponse, sheetQuery } from 'sheet-query'
+ * import { parseGVizResponse, sheetQuery } from '@cbcruk/sheet-query'
  *
  * const response = await fetch(sheetQuery('1VwfZpdR...').toUrl())
  * const parsed = parseGVizResponse(await response.text())
