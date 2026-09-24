@@ -68,6 +68,7 @@ sheet's header labels.
 `headers` matters more than it looks: left to guess, GViz sometimes reads the header row as
 data and returns empty column labels.
 
+GViz matches `sheet` ignoring case (`hr` reads the `HR` tab) but not surrounding whitespace.
 A `sheet` or `gid` that matches no tab is not an error to GViz: it returns the **first tab
 in tab order** with `status: ok`, so a typo or a renamed tab comes back as another tab's
 rows. With an access token, `execute({ verifySheet: true, accessToken })` checks the target

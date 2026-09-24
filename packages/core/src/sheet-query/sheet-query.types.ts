@@ -18,9 +18,10 @@ export interface SheetQueryOptions {
    * Sheet (tab) name to query. Mutually informative with {@linkcode gid};
    * provide one. When omitted, GViz targets the first sheet.
    *
-   * A name that matches no tab is **not** an error to GViz: it silently returns
-   * the first tab's rows. Pass `verifySheet` to {@linkcode SheetQuery.execute}
-   * to catch that.
+   * GViz matches the name ignoring case, but not surrounding whitespace. A name
+   * that matches no tab is **not** an error to GViz: it silently returns the
+   * first tab's rows. Pass `verifySheet` to {@linkcode SheetQuery.execute} to
+   * catch that.
    */
   sheet?: string
   /**

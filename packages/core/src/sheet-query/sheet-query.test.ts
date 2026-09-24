@@ -212,6 +212,25 @@ test('execute({ verifySheet }) passes for an existing tab name or gid', async ()
   expect(byGid).toHaveLength(2)
 })
 
+test('execute({ verifySheet }) matches tab names ignoring case, as GViz does', async () => {
+  const rows = await sheetQuery('sid', { sheet: 'PEOPLE' }).execute({
+    fetch: mockFetchWithTabs(),
+    accessToken: 'token',
+    verifySheet: true,
+  })
+  expect(rows).toHaveLength(2)
+})
+
+test('execute({ verifySheet }) does not trim whitespace, since GViz falls back on it', async () => {
+  await expect(
+    sheetQuery('sid', { sheet: 'people ' }).execute({
+      fetch: mockFetchWithTabs(),
+      accessToken: 'token',
+      verifySheet: true,
+    }),
+  ).rejects.toThrow('Sheet tab not found: "people ".')
+})
+
 test('execute({ verifySheet }) throws before querying GViz when the tab is missing', async () => {
   const calls: string[] = []
   await expect(
