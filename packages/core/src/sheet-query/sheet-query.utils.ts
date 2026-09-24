@@ -1,4 +1,6 @@
 import { and } from './conditions.ts'
+import { SheetQueryError } from './sheet-query.error.ts'
+import type { SheetTab } from '../sheet-write/sheet-write.types.ts'
 import type { SheetQueryState } from './sheet-query.types.ts'
 
 /** Root of the GViz endpoint; the spreadsheet id and `/gviz/tq` complete it. */
@@ -54,4 +56,25 @@ export function buildUrl(state: SheetQueryState): string {
   }
 
   return `${GVIZ_BASE}/${state.spreadsheetId}/gviz/tq?${params.toString()}`
+}
+
+/**
+ * Asserts that the query's `sheet` and `gid` name tabs that exist in `tabs`.
+ *
+ * GViz answers a missing target with the first tab's rows and `status: 'ok'`,
+ * so this check is the only way to tell a typo from real data. A query with no
+ * target passes: the first tab is then what the caller asked for.
+ *
+ * @throws {SheetQueryError} naming the missing target and the tabs that exist.
+ */
+export function assertSheetTarget(state: SheetQueryState, tabs: SheetTab[]): void {
+  const available = tabs.map((tab) => `"${tab.title}" (gid ${tab.sheetId})`).join(', ')
+
+  if (state.sheet !== undefined && !tabs.some((tab) => tab.title === state.sheet)) {
+    throw new SheetQueryError(`Sheet tab not found: "${state.sheet}". Available: ${available}.`)
+  }
+
+  if (state.gid !== undefined && !tabs.some((tab) => String(tab.sheetId) === String(state.gid))) {
+    throw new SheetQueryError(`Sheet tab not found: gid ${state.gid}. Available: ${available}.`)
+  }
 }

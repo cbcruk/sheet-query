@@ -68,11 +68,17 @@ sheet's header labels.
 `headers` matters more than it looks: left to guess, GViz sometimes reads the header row as
 data and returns empty column labels.
 
+A `sheet` or `gid` that matches no tab is not an error to GViz: it returns the **first tab
+in tab order** with `status: ok`, so a typo or a renamed tab comes back as another tab's
+rows. With an access token, `execute({ verifySheet: true, accessToken })` checks the target
+through the Sheets API first and throws instead. Without one, `verifyHeaders` catches the
+fallback only when the first tab's headers differ from the ones you expect.
+
 ### Execute options
 
 `execute()` takes `accessToken` (a bearer token for non-public sheets), `schema`,
-`verifyHeaders`, plus `fetch` and `signal` for supplying your own transport or cancelling a
-request.
+`verifyHeaders`, `verifySheet` (see above), plus `fetch` and `signal` for supplying your own
+transport or cancelling a request.
 
 ## Writing
 

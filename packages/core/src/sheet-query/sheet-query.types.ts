@@ -17,9 +17,18 @@ export interface SheetQueryOptions {
   /**
    * Sheet (tab) name to query. Mutually informative with {@linkcode gid};
    * provide one. When omitted, GViz targets the first sheet.
+   *
+   * A name that matches no tab is **not** an error to GViz: it silently returns
+   * the first tab's rows. Pass `verifySheet` to {@linkcode SheetQuery.execute}
+   * to catch that.
    */
   sheet?: string
-  /** Sheet tab `gid`. Useful when the tab name is unstable. */
+  /**
+   * Sheet tab `gid`. Useful when the tab name is unstable.
+   *
+   * Like {@linkcode sheet}, a `gid` that matches no tab silently resolves to
+   * the first tab in tab order — not to `gid` 0.
+   */
   gid?: string | number
   /**
    * Number of header rows. Defaults to `1`. Set to `0` for headerless sheets
@@ -79,4 +88,14 @@ export interface ExecuteOptions {
    * column labels match (in order) and throws on drift.
    */
   verifyHeaders?: string[]
+  /**
+   * When `true`, `execute` first checks through the Sheets API that the
+   * `sheet` or `gid` target exists, and throws instead of letting GViz fall
+   * back to the first tab.
+   *
+   * Requires {@linkcode accessToken} with read access to the spreadsheet's
+   * metadata, and costs one extra request. Has no effect on a query without a
+   * target.
+   */
+  verifySheet?: boolean
 }

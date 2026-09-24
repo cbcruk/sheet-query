@@ -1,5 +1,5 @@
 import { SheetQueryError } from '../sheet-query/sheet-query.error.ts'
-import type { SheetsApiContext, WriteValue } from './sheet-write.types.ts'
+import type { SheetsApiContext, SheetTab, WriteValue } from './sheet-write.types.ts'
 
 /** Sheets API v4 root; `ctx.baseUrl` overrides it in tests. */
 const DEFAULT_BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets'
@@ -137,6 +137,19 @@ export async function batchUpdate(ctx: SheetsApiContext, requests: unknown[]): P
 }
 
 /**
+ * Lists the spreadsheet's tabs, in tab order, via a metadata call.
+ *
+ * @throws {SheetQueryError} when the request fails or is unauthorized.
+ */
+export async function listSheetTabs(ctx: SheetsApiContext): Promise<SheetTab[]> {
+  const result = await sheetsRequest<{
+    sheets?: { properties?: SheetTab }[]
+  }>(ctx, `?fields=sheets.properties(sheetId,title)`)
+
+  return (result.sheets ?? []).flatMap((s) => (s.properties ? [s.properties] : []))
+}
+
+/**
  * Resolves a tab name to its numeric `sheetId` (`gid`) via a metadata call.
  *
  * Costs one extra round-trip, so callers that already know the id should pass
@@ -146,15 +159,11 @@ export async function batchUpdate(ctx: SheetsApiContext, requests: unknown[]): P
  * @throws {SheetQueryError} when no tab has that name or the request fails.
  */
 export async function resolveSheetId(ctx: SheetsApiContext, title: string): Promise<number> {
-  const result = await sheetsRequest<{
-    sheets?: { properties?: { sheetId: number; title: string } }[]
-  }>(ctx, `?fields=sheets.properties(sheetId,title)`)
+  const match = (await listSheetTabs(ctx)).find((tab) => tab.title === title)
 
-  const match = result.sheets?.find((s) => s.properties?.title === title)
-
-  if (!match?.properties) {
+  if (!match) {
     throw new SheetQueryError(`Sheet tab not found: ${title}`)
   }
 
-  return match.properties.sheetId
+  return match.sheetId
 }
