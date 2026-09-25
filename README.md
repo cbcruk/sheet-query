@@ -54,8 +54,10 @@ sheet's header labels.
 ### Condition helpers
 
 `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like`, `isNull`, `isNotNull`, combined with `and` /
-`or`. Values are serialized to GViz literals for you — strings are quoted and escaped, and
-`Date` becomes `datetime '...'` — which is where hand-built query strings usually go wrong.
+`or`. Values are serialized to GViz literals for you — strings are quoted, and `Date` becomes
+`datetime '...'` — which is where hand-built query strings usually go wrong. GViz string
+literals have no escape syntax, so a string containing `'` is wrapped in double quotes instead,
+backslashes are kept as they are, and a string containing both `'` and `"` throws.
 
 ### Query options
 
