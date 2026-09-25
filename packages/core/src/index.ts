@@ -79,6 +79,7 @@ export { fetchHeaderRow, verifyTableHeaders } from './sheet-write/table-headers.
 export type { Condition, ColumnValue } from './sheet-query/conditions.ts'
 export type {
   ExecuteOptions,
+  LabelTerm,
   OrderByTerm,
   SheetQueryOptions,
   SheetQueryState,

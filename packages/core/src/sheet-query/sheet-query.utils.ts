@@ -1,4 +1,4 @@
-import { and } from './conditions.ts'
+import { and, serializeValue } from './conditions.ts'
 import { SheetQueryError } from './sheet-query.error.ts'
 import type { SheetTab } from '../sheet-write/sheet-write.types.ts'
 import type { SheetQueryState } from './sheet-query.types.ts'
@@ -8,7 +8,8 @@ const GVIZ_BASE = 'https://docs.google.com/spreadsheets/d'
 
 /**
  * Builds the GViz `tq` query string from accumulated state, emitting clauses in
- * the order GViz expects: SELECT, WHERE, GROUP BY, ORDER BY, LIMIT, OFFSET.
+ * the order GViz expects: SELECT, WHERE, GROUP BY, PIVOT, ORDER BY, LIMIT,
+ * OFFSET, LABEL.
  */
 export function buildQuery(state: SheetQueryState): string {
   const parts: string[] = []
@@ -24,6 +25,10 @@ export function buildQuery(state: SheetQueryState): string {
     parts.push(`GROUP BY ${state.groupBy.join(', ')}`)
   }
 
+  if (state.pivot.length > 0) {
+    parts.push(`PIVOT ${state.pivot.join(', ')}`)
+  }
+
   if (state.orderBy.length > 0) {
     const terms = state.orderBy.map((term) => `${term.column} ${term.direction.toUpperCase()}`)
     parts.push(`ORDER BY ${terms.join(', ')}`)
@@ -35,6 +40,11 @@ export function buildQuery(state: SheetQueryState): string {
 
   if (state.offset !== undefined) {
     parts.push(`OFFSET ${state.offset}`)
+  }
+
+  if (state.labels.length > 0) {
+    const terms = state.labels.map((term) => `${term.column} ${serializeValue(term.text)}`)
+    parts.push(`LABEL ${terms.join(', ')}`)
   }
 
   return parts.join(' ')

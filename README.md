@@ -59,6 +59,39 @@ sheet's header labels.
 literals have no escape syntax, so a string containing `'` is wrapped in double quotes instead,
 backslashes are kept as they are, and a string containing both `'` and `"` throws.
 
+GViz scalar functions keep GViz's own conventions: `month()` is zero-based, so October is `9`.
+
+### Pivot and labels
+
+`pivot()` turns each distinct value of a column into its own output column, so a long table
+comes back wide in one request. `label()` renames an output column so result keys stop
+depending on GViz's generated labels.
+
+```ts
+import { isNull, sheetQuery } from '@cbcruk/sheet-query'
+
+const rows = await sheetQuery(spreadsheetId, { sheet: 'daily' })
+  .select('A', 'SUM(F)')
+  .where(isNull('E'))
+  .groupBy('A')
+  .pivot('C')
+  .execute()
+// [{ 날짜: Date, HR: 332, 개발: 7018, … }, …]
+```
+
+Rows are keyed by the output labels, which GViz builds from the pivot values:
+
+| query                                                             | keys                                                |
+| ----------------------------------------------------------------- | --------------------------------------------------- |
+| one aggregate, `pivot('C')`                                       | `HR`, `개발`, …                                     |
+| two aggregates, `SUM(F), MAX(G)`                                  | `HR sum 공고 수`, `HR max 구분`, …                  |
+| two aggregates plus `label('SUM(F)', 'n').label('MAX(G)', 'src')` | `HR n`, `HR src`, …                                 |
+| `pivot('C', 'G')`                                                 | `HR,복원`, …                                        |
+| no pivot, `AVG(F)`                                                | `avg 공고 수`; with `label('AVG(F)', 'avg')`, `avg` |
+
+A column cannot be both grouped and pivoted, and every selected column must be grouped or
+aggregated; GViz rejects either with an error that surfaces as `SheetQueryError`.
+
 ### Query options
 
 | Option    | Meaning                                                             |

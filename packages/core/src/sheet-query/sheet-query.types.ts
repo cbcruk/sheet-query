@@ -12,6 +12,14 @@ export interface OrderByTerm {
   direction: SortDirection
 }
 
+/** A single LABEL term, as accumulated by {@linkcode SheetQuery.label}. */
+export interface LabelTerm {
+  /** Column letter, id, or expression exactly as selected, e.g. `SUM(F)`. */
+  column: string
+  /** Label to give the output column; quoted for you. */
+  text: string
+}
+
 /** Options accepted when constructing a query. */
 export interface SheetQueryOptions {
   /**
@@ -62,12 +70,16 @@ export interface SheetQueryState {
   where: Condition[]
   /** GROUP BY columns. */
   groupBy: string[]
+  /** PIVOT columns. */
+  pivot: string[]
   /** ORDER BY terms, applied in array order. */
   orderBy: OrderByTerm[]
   /** Row limit; omitted means no `LIMIT` clause. */
   limit?: number
   /** Row offset; omitted means no `OFFSET` clause. */
   offset?: number
+  /** LABEL terms, rendered last. */
+  labels: LabelTerm[]
 }
 
 /** Options for {@linkcode SheetQuery.execute}. */
