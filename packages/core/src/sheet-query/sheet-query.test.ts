@@ -73,9 +73,24 @@ test('and() composes nested conditions', () => {
   expect(query).toBe("SELECT * WHERE (A > 1) AND (B = 'x')")
 })
 
-test('escapes single quotes in string values', () => {
+test('wraps a string holding a single quote in double quotes, since GViz has no escapes', () => {
   const query = sheetQuery('sid').where(eq('A', "O'Brien")).toQuery()
-  expect(query).toBe("SELECT * WHERE A = 'O\\'Brien'")
+  expect(query).toBe(`SELECT * WHERE A = "O'Brien"`)
+})
+
+test('keeps single quotes around a string holding a double quote', () => {
+  const query = sheetQuery('sid').where(eq('A', 'say "hi"')).toQuery()
+  expect(query).toBe(`SELECT * WHERE A = 'say "hi"'`)
+})
+
+test('leaves backslashes as they are, because GViz reads them literally', () => {
+  const query = sheetQuery('sid').where(eq('A', 'C:\\temp')).toQuery()
+  expect(query).toBe("SELECT * WHERE A = 'C:\\temp'")
+})
+
+test('throws for a string holding both quote characters', () => {
+  expect(() => eq('A', `it's "quoted"`)).toThrow(SheetQueryError)
+  expect(() => eq('A', `it's "quoted"`)).toThrow(/both ' and "/)
 })
 
 test('serializes Date values as GViz datetime literals', () => {

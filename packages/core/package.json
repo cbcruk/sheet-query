@@ -1,6 +1,6 @@
 {
   "name": "@cbcruk/sheet-query",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Treat Google Sheets like a data store: SQL-like reads via GViz, type-safe writes, schema validation.",
   "keywords": [
     "google-sheets",

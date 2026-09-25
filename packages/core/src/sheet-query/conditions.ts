@@ -1,3 +1,5 @@
+import { SheetQueryError } from './sheet-query.error.ts'
+
 /**
  * Structured WHERE conditions for GViz queries.
  *
@@ -45,10 +47,17 @@ function formatDatetime(date: Date): string {
 
 /**
  * Serializes a JS value into a GViz query literal: numbers and booleans bare,
- * `Date` as `datetime 'YYYY-MM-DD HH:mm:ss'`, and everything else single-quoted
- * with backslashes and quotes escaped.
+ * `Date` as `datetime 'YYYY-MM-DD HH:mm:ss'`, and strings quoted.
+ *
+ * GViz string literals have no escape syntax: a backslash is read literally,
+ * and neither `\'` nor `''` escapes a quote. So a string is wrapped in single
+ * quotes, or in double quotes when it contains a single quote, and left
+ * otherwise untouched.
  *
  * Exported for building expressions the helpers below do not cover.
+ *
+ * @throws {SheetQueryError} for a string holding both `'` and `"`, which no
+ * GViz literal can express.
  *
  * @example Hand-build a condition GViz supports but sheet-query does not
  * ```ts
@@ -70,7 +79,17 @@ export function serializeValue(value: ColumnValue): string {
     return `datetime '${formatDatetime(value)}'`
   }
 
-  return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+  if (!value.includes("'")) {
+    return `'${value}'`
+  }
+
+  if (!value.includes('"')) {
+    return `"${value}"`
+  }
+
+  throw new SheetQueryError(
+    `Cannot express ${JSON.stringify(value)} as a GViz string literal: it holds both ' and ", and GViz has no escape syntax.`,
+  )
 }
 
 /** Wraps a rendered expression as a {@linkcode Condition}. */
