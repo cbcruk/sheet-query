@@ -2,7 +2,7 @@ import { assertHeaders, tableHeaderLabels } from '../headers/headers.ts'
 import type { InferOutput, StandardSchemaV1 } from '../schema/standard-schema.types.ts'
 import { validateRows } from '../schema/validate.ts'
 import { listSheetTabs } from '../sheet-write/sheets-client.ts'
-import type { Condition } from './conditions.ts'
+import { serializeValue, type Condition } from './conditions.ts'
 import { assertGVizOk, parseGVizResponse, tableToObjects } from './gviz.ts'
 import type { SheetRow } from './gviz.types.ts'
 import { SheetQueryError } from './sheet-query.error.ts'
@@ -58,7 +58,9 @@ export class SheetQuery {
       select: [],
       where: [],
       groupBy: [],
+      pivot: [],
       orderBy: [],
+      labels: [],
     }
   }
 
@@ -108,6 +110,34 @@ export class SheetQuery {
   }
 
   /**
+   * Adds PIVOT columns: each distinct value of them becomes its own output
+   * column, so a long table comes back wide in a single request.
+   *
+   * Works with or without {@linkcode SheetQuery.groupBy}, but a column cannot
+   * be both grouped and pivoted, and every selected column must be grouped or
+   * aggregated. Output labels are built from the pivot values: `HR` with one
+   * aggregate, `HR sum 공고 수` with several, `HR,복원` when pivoting two
+   * columns. Use {@linkcode SheetQuery.label} to shorten them.
+   *
+   * Calls accumulate, like `groupBy`.
+   *
+   * @returns This builder, for chaining.
+   *
+   * @example One row per date, one column per category
+   * ```ts
+   * import { sheetQuery } from '@cbcruk/sheet-query'
+   *
+   * const query = sheetQuery('1VwfZpdR...').select('A', 'SUM(F)').groupBy('A').pivot('C')
+   *
+   * query.toQuery() // SELECT A, SUM(F) GROUP BY A PIVOT C
+   * ```
+   */
+  pivot(...columns: string[]): this {
+    this.state.pivot.push(...columns)
+    return this
+  }
+
+  /**
    * Adds an ORDER BY term. Multiple calls sort by each column in the order the
    * calls were made.
    *
@@ -137,6 +167,35 @@ export class SheetQuery {
    */
   offset(count: number): this {
     this.state.offset = count
+    return this
+  }
+
+  /**
+   * Renames an output column with a LABEL clause, so result keys stop
+   * depending on the labels GViz generates, such as `avg 공고 수` or
+   * `month(날짜)`, which change whenever a header is renamed.
+   *
+   * On a pivoted aggregate the label replaces the aggregate part: `HR n`
+   * instead of `HR sum 공고 수`. Calls accumulate.
+   *
+   * @param column The column or expression exactly as selected, e.g. `AVG(F)`.
+   * @param text The label; quoted for you like any other string value.
+   * @returns This builder, for chaining.
+   * @throws {SheetQueryError} when `text` holds both `'` and `"`, which no GViz
+   * literal can express.
+   *
+   * @example Readable keys for aggregates
+   * ```ts
+   * import { sheetQuery } from '@cbcruk/sheet-query'
+   *
+   * const query = sheetQuery('1VwfZpdR...').select('C', 'AVG(F)').groupBy('C').label('AVG(F)', 'avg')
+   *
+   * query.toQuery() // SELECT C, AVG(F) GROUP BY C LABEL AVG(F) 'avg'
+   * ```
+   */
+  label(column: string, text: string): this {
+    serializeValue(text)
+    this.state.labels.push({ column, text })
     return this
   }
 

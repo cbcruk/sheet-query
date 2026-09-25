@@ -93,6 +93,58 @@ test('throws for a string holding both quote characters', () => {
   expect(() => eq('A', `it's "quoted"`)).toThrow(/both ' and "/)
 })
 
+test('emits PIVOT after GROUP BY and before ORDER BY', () => {
+  const query = sheetQuery('sid')
+    .select('A', 'SUM(F)')
+    .groupBy('A')
+    .pivot('C')
+    .orderBy('A')
+    .toQuery()
+  expect(query).toBe('SELECT A, SUM(F) GROUP BY A PIVOT C ORDER BY A ASC')
+})
+
+test('accumulates PIVOT columns and allows them without GROUP BY', () => {
+  const query = sheetQuery('sid').select('SUM(F)').pivot('C').pivot('year(A)').toQuery()
+  expect(query).toBe('SELECT SUM(F) PIVOT C, year(A)')
+})
+
+test('emits LABEL last, after LIMIT and OFFSET, with each label quoted', () => {
+  const query = sheetQuery('sid')
+    .select('C', 'AVG(F)')
+    .groupBy('C')
+    .limit(10)
+    .offset(5)
+    .label('C', 'group')
+    .label('AVG(F)', 'avg')
+    .toQuery()
+  expect(query).toBe("SELECT C, AVG(F) GROUP BY C LIMIT 10 OFFSET 5 LABEL C 'group', AVG(F) 'avg'")
+})
+
+test('orders every clause the way GViz requires', () => {
+  const query = sheetQuery('sid')
+    .select('A', 'SUM(F)')
+    .where(eq('E', 'x'))
+    .groupBy('A')
+    .pivot('C')
+    .orderBy('A', 'desc')
+    .limit(2)
+    .offset(1)
+    .label('SUM(F)', 'n')
+    .toQuery()
+  expect(query).toBe(
+    "SELECT A, SUM(F) WHERE E = 'x' GROUP BY A PIVOT C ORDER BY A DESC LIMIT 2 OFFSET 1 LABEL SUM(F) 'n'",
+  )
+})
+
+test('quotes a label holding a single quote in double quotes', () => {
+  const query = sheetQuery('sid').select('A').label('A', "it's").toQuery()
+  expect(query).toBe(`SELECT A LABEL A "it's"`)
+})
+
+test('rejects a label GViz cannot express, when it is added', () => {
+  expect(() => sheetQuery('sid').label('A', `it's "x"`)).toThrow(SheetQueryError)
+})
+
 test('serializes Date values as GViz datetime literals', () => {
   const query = sheetQuery('sid')
     .where(gt('A', new Date(2024, 0, 15, 9, 30, 0)))
